@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robmini">
+    <xacro:macro name="robmini_ros2_control" params="use_mock_bool:='false'">
+        <!-- <ros2_control name="robmini_hardware_interface" type="system"> -->
+        <ros2_control name="${'mecanum_mock_system' if use_mock_bool else 'mecanum_hw_system'}"
+                type="system">
+            <hardware>
+                <!-- <plugin>gazebo_ros2_control/GazeboSystem</plugin> -->
+                <plugin>${'mock_components/GenericSystem' if use_mock_bool else 'mecanum_hw_interface/MecanumHWSystem'}</plugin>
+
+                <xacro:if value="${use_mock_bool}">
+                    <!-- 关键：命令回灌到状态，mock 下就能看到运动了 -->
+                    <param name="fake_sensor_commands">true</param>
+                </xacro:if>
+                
+                <xacro:unless value="${use_mock_bool}">
+                    <param name="device">/dev/ttySTM32</param>
+                    <param name="baud">115200</param>
+                </xacro:unless>
+            </hardware>
+
+            <joint name="front_left_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-10</param>
+                    <param name="max">10</param>
+                </command_interface>
+
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="front_right_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-10</param>
+                    <param name="max">10</param>
+                </command_interface>
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="rear_right_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-10</param>
+                    <param name="max">10</param>
+                </command_interface>
+                
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+
+            <joint name="rear_left_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-10</param>
+                    <param name="max">10</param>
+                </command_interface>
+                
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+        </ros2_control>
+
+        <!-- <gazebo>
+            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+                <update_rate>50</update_rate>
+
+
+                <parameters>$(find robmini_description)/config/robmini_mecanum_controllers.yaml</parameters>
+                <ros>
+                    <remapping>/robmini/mecanum_drive_controller_test01/tf_odometry:=/tf</remapping>
+                    <remapping>/robmini/mecanum_drive_controller_test01/reference_unstamped:=/robmini/cmd_vel</remapping>
+                    <remapping>/robmini/mecanum_drive_controller_test01/odometry:=/robmini/odom</remapping>
+                </ros>
+            </plugin>
+        </gazebo> -->
+    </xacro:macro>
+</robot>
+
+

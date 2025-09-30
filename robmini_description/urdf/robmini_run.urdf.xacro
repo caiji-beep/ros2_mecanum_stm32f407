@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="robmini" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!-- 添加参数声明 -->
+    <xacro:arg name="prefix" default=""/>
+    <xacro:arg name="use_mock" default="false"/>
+
+    
+    <!-- 获取参数值 -->
+    <xacro:property name="prefix" value="$(arg prefix)" />
+    <xacro:property name="use_mock" value="$(arg use_mock)"/>
+
+    <!-- TF 前缀处理保持不变 -->
+    <xacro:if value="${prefix == '/' or prefix == '' or prefix == ' '}">
+        <xacro:property name="tf_prefix" value="" />
+    </xacro:if>
+    <xacro:unless value="${prefix == '/' or prefix == '' or prefix == ' '}">
+        <xacro:property name="tf_prefix" value="${prefix}/" />
+    </xacro:unless>
+
+    <!-- 使用传统 find 语法 -->
+    <xacro:include filename="$(find robmini_description)/urdf/robmini.urdf.xacro" />
+    <xacro:include filename="$(find robmini_description)/urdf/lidar_gazebo.xacro" />
+    <xacro:include filename="$(find robmini_description)/urdf/robmini.ros2_control.xacro" />
+    <!-- 宏调用保持不变 -->
+    <!-- <robmini/> -->
+    <xacro:robmini_ros2_control
+      use_mock_bool="${str(use_mock).lower() in ['true','1','yes','on']}"/>
+</robot>

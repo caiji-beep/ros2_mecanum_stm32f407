@@ -1,0 +1,9 @@
+<library path="mecanum_hw_interface">
+  <class name="mecanum_hw_interface/MecanumHWSystem"
+         type="mecanum_hw_interface::MecanumHWSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      ros2_control hardware interface.
+    </description>
+  </class>
+</library>
