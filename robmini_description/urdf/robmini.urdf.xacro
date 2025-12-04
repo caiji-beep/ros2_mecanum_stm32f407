@@ -339,6 +339,48 @@
       xyz="0 0 0" />
   </joint>
 
+
+
+  <link
+    name="${tf_prefix}imu_link">
+    <inertial>
+      <!-- IMU 质量和惯性随便给一个小的，不影响 kinematics，只是占位 -->
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia
+        ixx="1e-6" ixy="0.0"  ixz="0.0"
+        iyy="1e-6" iyz="0.0"
+        izz="1e-6" />
+    </inertial>
+    <!-- 视觉上画一个小绿块表示 IMU 位置 -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.02 0.02 0.01" />
+      </geometry>
+      <material name="imu_green">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.02 0.02 0.01" />
+      </geometry>
+    </collision>
+  </link>
+  <!-- IMU 固定在 base_link 上，略偏右下角 -->
+  <joint name="imu_joint" type="fixed">
+    <!-- 这里的 xyz 就是 IMU 在 base_link 下的位置，单位：米 -->
+    <origin xyz="-0.02 -0.02 0" rpy="0 0 0" />
+    <parent link="${tf_prefix}base_link" />
+    <child  link="${tf_prefix}imu_link" />
+    <axis xyz="0 0 0" />
+  </joint>
+
+
+
+
   <gazebo reference="${tf_prefix}base_link">
     <material>Gazebo/Grey</material>
   </gazebo>

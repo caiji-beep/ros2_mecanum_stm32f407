@@ -9,6 +9,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -22,12 +26,15 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(can_listener src/can_listener.cpp)
+add_executable(can_imu_node src/can_imu_node.cpp)
 
+ament_target_dependencies(can_imu_node rclcpp sensor_msgs tf2)
 ament_target_dependencies(can_listener rclcpp)
 
 
 install(TARGETS
   can_listener
+  can_imu_node
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
