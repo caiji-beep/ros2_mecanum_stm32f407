@@ -1,0 +1,286 @@
+version: "4.1"
+name: mecanum
+type: ARM
+deviceName: null
+packDir: .pack/Keil/STM32F4xx_DFP.1.0.8
+srcDirs:
+  - ../MyTasks
+virtualFolder:
+  name: <virtual_root>
+  files:
+    - path: ../README.md
+  folders:
+    - name: USER
+      files:
+        - path: ../USER/main.c
+        - path: ../USER/stm32f4xx_it.c
+        - path: ../USER/system_stm32f4xx.c
+        - path: ../USER/freertos_demo.c
+        - path: ../USER/freertos_demo.h
+        - path: ../USER/main.h
+      folders: []
+    - name: CORE
+      files:
+        - path: ../CORE/startup_stm32f40_41xxx.s
+      folders: []
+    - name: FWLIB
+      files:
+        - path: ../FWLIB/src/misc.c
+        - path: ../FWLIB/src/stm32f4xx_adc.c
+        - path: ../FWLIB/src/stm32f4xx_can.c
+        - path: ../FWLIB/src/stm32f4xx_crc.c
+        - path: ../FWLIB/src/stm32f4xx_cryp.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_aes.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_des.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_tdes.c
+        - path: ../FWLIB/src/stm32f4xx_dac.c
+        - path: ../FWLIB/src/stm32f4xx_dbgmcu.c
+        - path: ../FWLIB/src/stm32f4xx_dcmi.c
+        - path: ../FWLIB/src/stm32f4xx_dma2d.c
+        - path: ../FWLIB/src/stm32f4xx_dma.c
+        - path: ../FWLIB/src/stm32f4xx_exti.c
+        - path: ../FWLIB/src/stm32f4xx_flash.c
+        - path: ../FWLIB/src/stm32f4xx_flash_ramfunc.c
+        - path: ../FWLIB/src/stm32f4xx_fsmc.c
+        - path: ../FWLIB/src/stm32f4xx_gpio.c
+        - path: ../FWLIB/src/stm32f4xx_hash.c
+        - path: ../FWLIB/src/stm32f4xx_hash_md5.c
+        - path: ../FWLIB/src/stm32f4xx_hash_sha1.c
+        - path: ../FWLIB/src/stm32f4xx_i2c.c
+        - path: ../FWLIB/src/stm32f4xx_iwdg.c
+        - path: ../FWLIB/src/stm32f4xx_ltdc.c
+        - path: ../FWLIB/src/stm32f4xx_pwr.c
+        - path: ../FWLIB/src/stm32f4xx_rcc.c
+        - path: ../FWLIB/src/stm32f4xx_rng.c
+        - path: ../FWLIB/src/stm32f4xx_rtc.c
+        - path: ../FWLIB/src/stm32f4xx_sai.c
+        - path: ../FWLIB/src/stm32f4xx_sdio.c
+        - path: ../FWLIB/src/stm32f4xx_spi.c
+        - path: ../FWLIB/src/stm32f4xx_syscfg.c
+        - path: ../FWLIB/src/stm32f4xx_tim.c
+        - path: ../FWLIB/src/stm32f4xx_usart.c
+        - path: ../FWLIB/src/stm32f4xx_wwdg.c
+      folders: []
+    - name: SYSTEM
+      files:
+        - path: ../SYSTEM/Timer.c
+        - path: ../SYSTEM/Timer.h
+        - path: ../SYSTEM/SPL_Delay.c
+        - path: ../SYSTEM/SPL_Delay.h
+        - path: ../SYSTEM/retarget_uart.c
+        - path: ../SYSTEM/retarget_uart.h
+        - path: ../SYSTEM/watchdog.c
+        - path: ../SYSTEM/watchdog.h
+        - path: ../SYSTEM/robot_state.c
+        - path: ../SYSTEM/robot_state.h
+      folders: []
+    - name: HARDWARE
+      files:
+        - path: ../HARDWARE/Key.c
+        - path: ../HARDWARE/Key.h
+        - path: ../HARDWARE/OLED.c
+        - path: ../HARDWARE/OLED.h
+        - path: ../HARDWARE/OLED_Font.h
+        - path: ../HARDWARE/PWM.c
+        - path: ../HARDWARE/PWM.h
+        - path: ../HARDWARE/Encoder.c
+        - path: ../HARDWARE/Encoder.h
+        - path: ../HARDWARE/LED.c
+        - path: ../HARDWARE/buzzer.c
+        - path: ../HARDWARE/buzzer.h
+        - path: ../HARDWARE/Usartx.c
+        - path: ../HARDWARE/Usartx.h
+        - path: ../HARDWARE/IMU_Icm20948.c
+        - path: ../HARDWARE/IMU_Icm20948.h
+        - path: ../HARDWARE/Can.c
+        - path: ../HARDWARE/Can.h
+        - path: ../HARDWARE/LED.h
+      folders: []
+    - name: FreeRTOS
+      files: []
+      folders:
+        - name: include
+          files:
+            - path: ../FreeRTOS/include/atomic.h
+            - path: ../FreeRTOS/include/croutine.h
+            - path: ../FreeRTOS/include/deprecated_definitions.h
+            - path: ../FreeRTOS/include/event_groups.h
+            - path: ../FreeRTOS/include/FreeRTOS.h
+            - path: ../FreeRTOS/include/list.h
+            - path: ../FreeRTOS/include/message_buffer.h
+            - path: ../FreeRTOS/include/mpu_prototypes.h
+            - path: ../FreeRTOS/include/mpu_wrappers.h
+            - path: ../FreeRTOS/include/portable.h
+            - path: ../FreeRTOS/include/projdefs.h
+            - path: ../FreeRTOS/include/queue.h
+            - path: ../FreeRTOS/include/semphr.h
+            - path: ../FreeRTOS/include/stack_macros.h
+            - path: ../FreeRTOS/include/StackMacros.h
+            - path: ../FreeRTOS/include/stream_buffer.h
+            - path: ../FreeRTOS/include/task.h
+            - path: ../FreeRTOS/include/timers.h
+            - path: ../FreeRTOS/FreeRTOSConfig.h
+          folders: []
+        - name: port
+          files:
+            - path: ../FreeRTOS/port/heap_4.c
+            - path: ../FreeRTOS/port/port.c
+          folders: []
+        - name: src
+          files:
+            - path: ../FreeRTOS/src/croutine.c
+            - path: ../FreeRTOS/src/event_groups.c
+            - path: ../FreeRTOS/src/list.c
+            - path: ../FreeRTOS/src/queue.c
+            - path: ../FreeRTOS/src/stream_buffer.c
+            - path: ../FreeRTOS/src/tasks.c
+            - path: ../FreeRTOS/src/timers.c
+          folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: 0e8fe07732138ba7f1e90633b0c577ce
+targets:
+  mecanum:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F40_41xxx
+        - USE_STDPERIPH_DRIVER
+      incList:
+        - .
+        - ../CORE
+        - ../USER
+        - ../FWLIB/inc
+        - ../HARDWARE
+        - ../SYSTEM/delay
+        - ../SYSTEM/sys
+        - ../SYSTEM/usart
+        - ../SYSTEM
+        - ../FreeRTOS
+        - ../FreeRTOS/include
+        - ../FreeRTOS/port
+        - ../FreeRTOS/src
+        - .cmsis/include
+        - ../USER/RTE/_mecanum
+        - ../MyTasks
+      libList: []
+    excludeList: []
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler: {}
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: false
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: true
+              mem:
+                size: "0x10000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: stlink
+        target: stm32f4x
+    uploader: OpenOCD
