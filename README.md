@@ -148,6 +148,9 @@ python3 ~/robotmini_ws/scripts/stm32_dummy_feeder.py --port /tmp/ttyV1 --baud 11
 
 ros2 launch robmini_description real_bringup.launch.py
 
-
-ros2 run rviz2 rviz2 -d /home/lsz/robotmini_ws/install/robmini_navigation/share/robmini_navigation/rviz/nav2.rviz --ros-args -r __ns:=/robmini -p use_sim_time:=false
+快速启动（ubantu远程ssh）：
+1.ros2 launch robmini_navigation demo_real_navigation.launch.py 
+2.新建远程终端
+3.ros2 run rviz2 rviz2 -d /home/lsz/robotmini_ws/install/robmini_navigation/share/robmini_navigation/rviz/nav2.rviz --ros-args -r __ns:=/robmini -p use_sim_time:=false
+4.蓝牙将小车改为nav模式
 
