@@ -12,10 +12,10 @@
 #include "IMU_Icm20948.h"
 
 // === 低速起步补偿（静摩擦）===
-#define SC_DEADZONE_PWM (1200)      // 大死区补偿，必须 ≥ 800
+#define SC_DEADZONE_PWM (1200)      // 大死区补偿，必须 ≥ 1200
 #define SC_VREF_STOP_THR (0.01f)    // “真正停车”的阈值
 #define SC_VREF_SLOW_THR (0.10f)    // 低速微调 vs 正常行驶的分界
-#define SC_DEADZONE_PWM_SLOW (1000) // 低速微调用的起步补偿，必须 ≥ 800
+#define SC_DEADZONE_PWM_SLOW (1000) // 低速微调用的起步补偿，必须 ≥ 1000
 
 extern volatile Robot_state g_robot_state;
 extern volatile CtrlMode g_mode;
@@ -217,7 +217,7 @@ void Ctrl_Task(void *pvParameters)
             if (g_robot_state == ROBOT_STATE_NAV && g_nav_cmd_alive == 1)
             {
                 TickType_t now = xTaskGetTickCount();
-                if ((now - g_nav_last_rx_tick) > pdMS_TO_TICKS(300)) // 比如 300ms
+                if ((now - g_nav_last_rx_tick) > pdMS_TO_TICKS(300))
                 {
                     // Nav2 失联 / 速度包超时：立刻停车并回到 IDLE
                     Robot_EnterState(ROBOT_STATE_IDLE);

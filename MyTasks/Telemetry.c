@@ -2,20 +2,13 @@
  * @Author: caiji-beep 2978115384@qq.com
  * @Date: 2025-12-01 19:02:17
  * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2025-12-04 18:05:51
- * @FilePath: \EIDEe:\STM32_Documents\PROJECT\ros2_mecanum\MyTasks\Telemetry.c
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
-/*
- * @Author: caiji-beep 2978115384@qq.com
- * @Date: 2025-12-01 19:02:17
- * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2025-12-03 09:46:23
+ * @LastEditTime: 2026-04-27 20:39:18
  * @FilePath: \EIDEe:\STM32_Documents\PROJECT\ros2_mecanum\MyTasks\Telemetry.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 #include "freertos_demo.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "Uart.h"
 #include "Telemetry.h"
 #include "Usartx.h"
@@ -44,7 +37,10 @@ void Telemetry_Task(void *pvParameters)
         //     LED1_ON();
         // led = !led;
         Serial3_SendMeasPacket(wA, wB, wC, wD);
-        ICM20948_ProcessedData_t buffer = IMU_processed;
+        ICM20948_ProcessedData_t buffer;
+        taskENTER_CRITICAL();
+        buffer = IMU_processed;
+        taskEXIT_CRITICAL();
         IMU_CAN_SendAll(&buffer);
     }
 }

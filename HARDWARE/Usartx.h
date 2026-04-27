@@ -24,6 +24,8 @@ extern volatile uint8_t Serial2_RXFlag;
 
 extern volatile uint16_t Serial3_RXData;
 extern volatile uint8_t Serial3_RXFlag;
+extern volatile uint32_t g_serial3_rx_ok_count;
+extern volatile uint32_t g_serial3_crc_error_count;
 
 void Serial2_Init(void);
 void Serial2_SendByte(uint8_t Byte);

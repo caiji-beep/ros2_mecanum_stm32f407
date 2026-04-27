@@ -15,8 +15,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-volatile Robot_state g_robot_state = ROBOT_STATE_IDLE;
-volatile CtrlMode    g_mode = MODE_MANUAL;
+volatile Robot_state g_robot_state = ROBOT_STATE_NAV;
+volatile CtrlMode    g_mode = MODE_VEL;
 volatile TickType_t g_nav_last_rx_tick = 0; // Nav2 软件看门狗
 volatile uint8_t    g_nav_cmd_alive    = 0;  // 0=还没收到过 Nav2 命令；1=已激活，看门狗生效
 
@@ -28,7 +28,6 @@ void Robot_EnterState(Robot_state new_state)
     switch (new_state)
     {
     case ROBOT_STATE_IDLE:
-        // 停车，默认手动模式
         g_mode = MODE_MANUAL;
         Set_Pwm(0, 0, 0, 0);
         SC_SetTargets4(0.0f, 0.0f, 0.0f, 0.0f);

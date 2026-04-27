@@ -218,3 +218,33 @@ void EXTI0_IRQHandler(void)
     }
 }
 
+/**
+ * @brief 栈溢出钩子函数
+ * 
+ * @param xTask 
+ * @param pcTaskName 
+ */
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    (void)xTask;
+    (void)pcTaskName;
+    taskDISABLE_INTERRUPTS();//全局关闭中断
+    Set_Pwm(0, 0, 0, 0);
+    for (;;)//让程序彻底卡死在这里等待复位
+    {
+    }
+}
+
+/**
+ * @brief 内存分配失败钩子函数
+ * 
+ */
+void vApplicationMallocFailedHook(void)
+{
+    taskDISABLE_INTERRUPTS();
+    Set_Pwm(0, 0, 0, 0);
+    for (;;)
+    {
+    }
+}
+

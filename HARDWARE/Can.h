@@ -17,6 +17,7 @@ extern uint8_t MyCan_RxFlag;
 
 void CAN1_Init(void);
 uint8_t CAN1_Send(CanTxMsg* TxMessage);
+/* 0x180 accel(mg), 0x181 gyro(mrad/s), 0x182 legacy attitude, 0x184 status */
 void IMU_CAN_SendAll(const ICM20948_ProcessedData_t *p);
 //void IMU_CAN_SendAll(const ICM20948_RawData_t *p);
 

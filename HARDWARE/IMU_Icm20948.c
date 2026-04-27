@@ -34,6 +34,63 @@
 ICM20948_RawData_t IMU_data;
 ICM20948_Offset_t IMU_offset;
 ICM20948_ProcessedData_t IMU_processed;
+volatile ICM20948_Status_t IMU_status;
+extern int g_i2c_last_error;
+
+void ICM20948_MarkCalibrated(uint8_t calibrated)
+{
+    IMU_status.calibrated = calibrated ? 1U : 0U;
+}
+
+void ICM20948_StatusOnRead(uint8_t ok, uint32_t tick_ms)
+{
+    IMU_status.last_update_ms = tick_ms;
+    IMU_status.last_error = ok ? 0U : (uint8_t)g_i2c_last_error;
+
+    if (ok)
+    {
+        IMU_status.seq++;
+        IMU_status.data_valid = 1U;
+        IMU_status.recovering = 0U;
+        IMU_status.fault = 0U;
+        IMU_status.consecutive_failures = 0U;
+        IMU_status.read_ok_count++;
+    }
+    else
+    {
+        IMU_status.data_valid = 0U;
+        IMU_status.read_fail_count++;
+        if (IMU_status.consecutive_failures < 255U)
+        {
+            IMU_status.consecutive_failures++;
+        }
+        IMU_status.fault = (IMU_status.consecutive_failures >= 5U) ? 1U : 0U;
+    }
+}
+
+void ICM20948_StatusOnRecovery(uint32_t tick_ms)
+{
+    IMU_status.recovering = 1U;
+    IMU_status.recovery_count++;
+    IMU_status.last_update_ms = tick_ms;
+}
+
+ICM20948_Status_t ICM20948_GetStatusSnapshot(void)
+{
+    ICM20948_Status_t s;
+    s.seq = IMU_status.seq;
+    s.calibrated = IMU_status.calibrated;
+    s.data_valid = IMU_status.data_valid;
+    s.recovering = IMU_status.recovering;
+    s.fault = IMU_status.fault;
+    s.last_error = IMU_status.last_error;
+    s.consecutive_failures = IMU_status.consecutive_failures;
+    s.read_ok_count = IMU_status.read_ok_count;
+    s.read_fail_count = IMU_status.read_fail_count;
+    s.recovery_count = IMU_status.recovery_count;
+    s.last_update_ms = IMU_status.last_update_ms;
+    return s;
+}
 
 int g_i2c_last_error = 0;  // 最近一次错误的步骤编号
 int g_i2c_error_count = 0; // 错误总次数
@@ -411,6 +468,7 @@ void ICM20948_Calibrate(ICM20948_Offset_t *off, uint16_t N)
     ICM20948_RawData_t data;
     int32_t ax_sum = 0, ay_sum = 0, az_sum = 0;
     int32_t gx_sum = 0, gy_sum = 0, gz_sum = 0;
+    uint16_t valid = 0;
 
     if (off == NULL || N == 0)
         return;
@@ -425,16 +483,24 @@ void ICM20948_Calibrate(ICM20948_Offset_t *off, uint16_t N)
             gx_sum += data.gx;
             gy_sum += data.gy;
             gz_sum += data.gz;
+            valid++;
         }
         SPL_Delay_ms(5);
     }
 
-    off->ax_offset = (float)ax_sum / (float)N;
-    off->ay_offset = (float)ay_sum / (float)N;
-    off->az_offset = (float)az_sum / (float)N;
-    off->gx_offset = (float)gx_sum / (float)N;
-    off->gy_offset = (float)gy_sum / (float)N;
-    off->gz_offset = (float)gz_sum / (float)N;
+    if (valid == 0)
+    {
+        ICM20948_MarkCalibrated(0);
+        return;
+    }
+
+    off->ax_offset = (float)ax_sum / (float)valid;
+    off->ay_offset = (float)ay_sum / (float)valid;
+    off->az_offset = (float)az_sum / (float)valid;
+    off->gx_offset = (float)gx_sum / (float)valid;
+    off->gy_offset = (float)gy_sum / (float)valid;
+    off->gz_offset = (float)gz_sum / (float)valid;
+    ICM20948_MarkCalibrated(1);
 }
 
 /* 姿态解算 + 互补滤波 */

@@ -35,6 +35,19 @@ volatile uint8_t Serial2_RXFlag;
 
 volatile uint16_t Serial3_RXData;
 volatile uint8_t Serial3_RXFlag;
+volatile uint32_t g_serial3_rx_ok_count;
+volatile uint32_t g_serial3_crc_error_count;
+
+#define SERIAL3_WHEEL_SPEED_LIMIT_MPS 1.50f
+
+static float Serial3_ClampWheelSpeed(float v_mps)
+{
+    if (v_mps > SERIAL3_WHEEL_SPEED_LIMIT_MPS)
+        return SERIAL3_WHEEL_SPEED_LIMIT_MPS;
+    if (v_mps < -SERIAL3_WHEEL_SPEED_LIMIT_MPS)
+        return -SERIAL3_WHEEL_SPEED_LIMIT_MPS;
+    return v_mps;
+}
 
 /* ========= 初始化 ========= */
 void Serial2_Init(void)
@@ -423,12 +436,18 @@ void Serial3_ParsePacket(uint8_t data)
 
         if (calc_crc == recv_crc)
         {
+            g_serial3_rx_ok_count++;
             // CRC校验通过，处理数据
-            float *speeds = (float *)&packet[4];
+            float speeds[4];
+            memcpy(speeds, &packet[4], sizeof(speeds));
             vA_mps = speeds[0] * (WHEEL_DIAMETER_M / 2.0f);
             vB_mps = speeds[1] * (WHEEL_DIAMETER_M / 2.0f);
             vC_mps = speeds[2] * (WHEEL_DIAMETER_M / 2.0f);
             vD_mps = speeds[3] * (WHEEL_DIAMETER_M / 2.0f);
+            vA_mps = Serial3_ClampWheelSpeed(vA_mps);
+            vB_mps = Serial3_ClampWheelSpeed(vB_mps);
+            vC_mps = Serial3_ClampWheelSpeed(vC_mps);
+            vD_mps = Serial3_ClampWheelSpeed(vD_mps);
 
             if (fabsf(vA_mps) < 0.02f)
             {
@@ -461,6 +480,10 @@ void Serial3_ParsePacket(uint8_t data)
 
             // SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);
             // g_mode = MODE_VEL;
+        }
+        else
+        {
+            g_serial3_crc_error_count++;
         }
 
         s_parser_state = STATE_HDR0; // 重置状态机

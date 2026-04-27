@@ -63,6 +63,8 @@ void Uart_Task(void *pvParameters)
             if (xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
             {
                 // printf("[UART3] waiting rx...\r\n");
+                // ROS packets must not steal mode ownership. Valid packets are
+                // applied only while the robot is already in NAV inside parser.
                 Serial3_ParsePacket(rx_byte); // uart3
                 processed++;
             }

@@ -32,18 +32,22 @@ void IMU_Task(void *pvParameters)
         //     LED1_ON();
         // led = !led;
         //ICM20948_ReadData(&IMU_data);
+        TickType_t now = xTaskGetTickCount();
         if(ICM20948_ReadData(&IMU_data))
         {
             LED1_OFF();
             fail_streak = 0;
             ICM20948_Process(&IMU_data, &IMU_offset, &IMU_processed, IMU_dt);
+            ICM20948_StatusOnRead(1, (uint32_t)now);
         }
         else
         {
             LED1_ON();
             fail_streak++;
+            ICM20948_StatusOnRead(0, (uint32_t)now);
             if(fail_streak >= 5)
             {
+                ICM20948_StatusOnRecovery((uint32_t)now);
                 I2C2_BusRecovery();
                 ICM20948_Init();    // 重新配置 IMU 寄存器
                 fail_streak = 0;

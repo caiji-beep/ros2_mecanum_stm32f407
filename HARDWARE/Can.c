@@ -2,7 +2,7 @@
  * @Author: caiji-beep 2978115384@qq.com
  * @Date: 2025-12-01 23:05:35
  * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2025-12-04 18:05:17
+ * @LastEditTime: 2026-04-27 21:52:07
  * @FilePath: \EIDEe:\STM32_Documents\PROJECT\ros2_mecanum\HARDWARE\Can.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%
  */
@@ -12,8 +12,6 @@
 
 CanRxMsg MyCan_RxMsg;
 uint8_t MyCan_RxFlag;
-
-static uint8_t imu_seq = 0;
 
 void CAN1_Init(void)
 {
@@ -55,7 +53,7 @@ void CAN1_Init(void)
 	CAN_InitStructure.CAN_RFLM = DISABLE;	
 	CAN_InitStructure.CAN_AWUM = DISABLE;
 	CAN_InitStructure.CAN_TTCM = DISABLE;
-	CAN_InitStructure.CAN_ABOM = DISABLE;
+	CAN_InitStructure.CAN_ABOM = ENABLE;
 	CAN_Init(CAN1,&CAN_InitStructure);
 
     CAN_FilterInitStructure.CAN_FilterNumber = 0;
@@ -87,6 +85,20 @@ uint8_t CAN1_Send(CanTxMsg* TxMessage)
         return 0; // 发送失败
     }
     return 1; // 发送成功
+}
+
+static uint8_t IMU_StatusFlags(const ICM20948_Status_t *s)
+{
+    uint8_t flags = 0;
+    if (s->data_valid)
+        flags |= 0x01;
+    if (s->calibrated)
+        flags |= 0x02;
+    if (s->recovering)
+        flags |= 0x04;
+    if (s->fault)
+        flags |= 0x08;
+    return flags;
 }
 
 // void IMU_CAN_SendAll(const ICM20948_RawData_t *p)
@@ -124,20 +136,22 @@ void IMU_CAN_SendAll(const ICM20948_ProcessedData_t *p)
 {
     uint8_t buffer[8];
     CanTxMsg TxMessage;
-    uint8_t seq = imu_seq++;
+    ICM20948_Status_t status = ICM20948_GetStatusSnapshot();
+    uint8_t seq = status.seq;
+    uint8_t status_flags = IMU_StatusFlags(&status);
     
     //帧0x180:加速度ax,ay,az
     int16_t ax = (int16_t)(p->ax_g * 1000); // 转换为mg
     int16_t ay = (int16_t)(p->ay_g * 1000); // 转换为mg
     int16_t az = (int16_t)(p->az_g * 1000); // 转换为mg
-    buffer[0] = ax & 0xFF;  // 低字节（LSB）使用小端序，且与上位机保持一致
+    buffer[0] = ax & 0xFF;  // 低字节（LSB）使用小端序，且与上位机保持一致// 低字节在前
     buffer[1] = (ax >> 8) & 0xFF;
     buffer[2] = ay & 0xFF;
     buffer[3] = (ay >> 8) & 0xFF;
     buffer[4] = az & 0xFF;
     buffer[5] = (az >> 8) & 0xFF;
     buffer[6] = seq;
-    buffer[7] = 0; // 保留字节
+    buffer[7] = status_flags;
 
     TxMessage.StdId = 0x180;
     TxMessage.ExtId = 0x00000000;
@@ -161,7 +175,7 @@ void IMU_CAN_SendAll(const ICM20948_ProcessedData_t *p)
     buffer[4] = gz & 0xFF;
     buffer[5] = (gz >> 8) & 0xFF;
     buffer[6] = seq;
-    buffer[7] = 0; // 保留字节
+    buffer[7] = status_flags;
 
 
     TxMessage.StdId = 0x181;
@@ -188,6 +202,27 @@ void IMU_CAN_SendAll(const ICM20948_ProcessedData_t *p)
     buffer[7] = 0; // 保留字节  
 
     TxMessage.StdId = 0x182;
+    TxMessage.ExtId = 0x00000000;
+    TxMessage.IDE = CAN_Id_Standard;
+    TxMessage.RTR = CAN_RTR_Data;
+    TxMessage.DLC = 8;
+    for(uint8_t i = 0;i<8;i++)
+    {
+        TxMessage.Data[i] = buffer[i];
+    }
+    CAN1_Send(&TxMessage);
+
+    // 0x184: IMU health/status. Use gyro_z on ROS side for heading fusion.
+    buffer[0] = seq;
+    buffer[1] = status_flags;
+    buffer[2] = status.last_error;
+    buffer[3] = status.consecutive_failures;
+    buffer[4] = (uint8_t)(status.read_fail_count & 0xFF);
+    buffer[5] = (uint8_t)(status.recovery_count & 0xFF);
+    buffer[6] = (uint8_t)(status.last_update_ms & 0xFF);
+    buffer[7] = (uint8_t)((status.last_update_ms >> 8) & 0xFF);
+
+    TxMessage.StdId = 0x184;
     TxMessage.ExtId = 0x00000000;
     TxMessage.IDE = CAN_Id_Standard;
     TxMessage.RTR = CAN_RTR_Data;
