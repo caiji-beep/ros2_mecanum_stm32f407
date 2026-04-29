@@ -2,7 +2,7 @@
  * @Author: caiji-beep 2978115384@qq.com
  * @Date: 2025-12-01 19:02:17
  * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2025-12-03 23:54:37
+ * @LastEditTime: 2026-04-29 15:23:34
  * @FilePath: \EIDEe:\STM32_Documents\PROJECT\backup\rtos_ros2_mecanum\2025112303 - 副本\MyTasks\Uart.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -62,10 +62,11 @@ void Uart_Task(void *pvParameters)
         {
             if (xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
             {
-                // printf("[UART3] waiting rx...\r\n");
-                // ROS packets must not steal mode ownership. Valid packets are
-                // applied only while the robot is already in NAV inside parser.
-                Serial3_ParsePacket(rx_byte); // uart3
+                while(xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
+                {
+
+                }
+                Serial3_RxDmaDrain();
                 processed++;
             }
         }
@@ -100,22 +101,44 @@ void USART2_IRQHandler(void)
 
 /* ========= 串口3中断服务函数 ========= */
 
+// void USART3_IRQHandler(void)
+// {
+//     if (USART_GetITStatus(USART3, USART_IT_RXNE) == SET)
+//     {
+//         USART_ClearITPendingBit(USART3, USART_IT_RXNE);
+//         // printf("USART3_IRQHandler\r\n");
+//         uint8_t data = USART_ReceiveData(USART3);
+//         Serial3_RXFlag = 1;
+
+//         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//         if (gUart3RxQ)
+//         {
+//             xQueueSendFromISR(gUart3RxQ, &data, &xHigherPriorityTaskWoken);
+//         }
+
+//         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+//         //Serial3_ParsePacket(data); // 解析协议
+//     }
+// }
 void USART3_IRQHandler(void)
 {
-    if (USART_GetITStatus(USART3, USART_IT_RXNE) == SET)
-    {
-        USART_ClearITPendingBit(USART3, USART_IT_RXNE);
-        // printf("USART3_IRQHandler\r\n");
-        uint8_t data = USART_ReceiveData(USART3);
-        Serial3_RXFlag = 1;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    if (USART_GetITStatus(USART3, USART_IT_IDLE) == SET)
+    {
+        volatile uint32_t tmp;
+
+        tmp = USART3->SR;
+        tmp = USART3->DR;
+        (void)tmp;
+
+        uint8_t event = 1;
         if (gUart3RxQ)
         {
-            xQueueSendFromISR(gUart3RxQ, &data, &xHigherPriorityTaskWoken);
+            xQueueSendFromISR(gUart3RxQ, &event, &xHigherPriorityTaskWoken);
         }
 
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-        //Serial3_ParsePacket(data); // 解析协议
     }
 }
+

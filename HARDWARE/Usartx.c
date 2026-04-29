@@ -22,6 +22,11 @@ extern volatile Robot_state g_robot_state;
 extern volatile TickType_t g_nav_last_rx_tick;
 extern volatile uint8_t g_nav_cmd_alive;
 
+#define SERIAL3_RX_DMA_BUF_SIZE 256
+
+static uint8_t s_serial3_rx_dma_buf[SERIAL3_RX_DMA_BUF_SIZE];
+static volatile uint16_t s_serial3_rx_dma_old_pos = 0;
+
 float vA_mps, vB_mps, vC_mps, vD_mps;
 
 static ParserState s_parser_state = STATE_HDR0;
@@ -93,7 +98,7 @@ void Serial2_Init(void)
 
     USART_ITConfig(USART2, USART_IT_RXNE, ENABLE); // Open the serial port to accept interrupts //开启串口接受中断
     USART_Cmd(USART2, ENABLE);                     // Enable serial port 2 //使能串口2
-    //printf("[UART2] Serial_Init done\r\n");
+    // printf("[UART2] Serial_Init done\r\n");
 }
 
 /* ========= 发送接口 ========= */
@@ -271,8 +276,6 @@ void Serial3_SendMeasPacket(float w1, float w2, float w3, float w4);
 void Serial3_ParsePacket(uint8_t data);
 uint16_t Serial3_CRC16(const uint8_t *data, size_t len);
 
-
-
 /* ========= 串口3初始化 ========= */
 void Serial3_Init(void)
 {
@@ -304,7 +307,7 @@ void Serial3_Init(void)
     NVIC_Init(&NVIC_InitStructure);
 
     // 配置USART3
-    USART_InitStructure.USART_BaudRate = 115200; // 通常ROS使用较高波特率
+    USART_InitStructure.USART_BaudRate = 115200;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
     USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -313,17 +316,55 @@ void Serial3_Init(void)
     USART_Init(USART3, &USART_InitStructure);
 
     // 使能接收中断
-    USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+    //USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
     // 使能USART3
     USART_Cmd(USART3, ENABLE);
+
+    /*配置DMA DMA1_Stream1 DMA_Channel_4*/
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
+
+    DMA_DeInit(DMA1_Stream1);
+    while (DMA_GetCmdStatus(DMA1_Stream1) != DISABLE)
+    {
+    }
+
+    DMA_InitTypeDef DMA_InitStructure;
+    DMA_InitStructure.DMA_Channel = DMA_Channel_4;
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&USART3->DR;
+    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)s_serial3_rx_dma_buf;
+    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
+    DMA_InitStructure.DMA_BufferSize = SERIAL3_RX_DMA_BUF_SIZE;
+    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;//外设地址不增
+    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;//内存地址递增
+    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;//循环模式
+    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+    DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
+    DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
+    DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
+    DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
+
+    DMA_Init(DMA1_Stream1, &DMA_InitStructure);
+    DMA_Cmd(DMA1_Stream1, ENABLE);
+
+    /*清idle中断标志位*/
+    volatile uint32_t tmp;
+    tmp = USART3->SR;
+    tmp = USART3->DR;
+    (void)tmp;
+
+    USART_DMACmd(USART3, USART_DMAReq_Rx, ENABLE);
+    USART_ITConfig(USART3, USART_IT_IDLE, ENABLE);
 }
 
 /* ========= 串口3发送字节 ========= */
 void Serial3_SendByte(uint8_t Byte)
 {
     USART_SendData(USART3, Byte);
-    while (USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET);//等待发送完毕
+    while (USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET)
+        ; // 等待发送完毕
 }
 
 /* ========= 串口3发送数组 ========= */
@@ -352,6 +393,27 @@ uint8_t Serial3_GetRXFlag(void)
         return 1;
     }
     return 0;
+}
+
+void Serial3_RxDmaDrain(void)
+{
+    uint16_t pos = SERIAL3_RX_DMA_BUF_SIZE - DMA_GetCurrDataCounter(DMA1_Stream1);
+
+    if (pos >= SERIAL3_RX_DMA_BUF_SIZE)
+    {
+        pos = 0;
+    }
+
+    while (s_serial3_rx_dma_old_pos != pos)
+    {
+        Serial3_ParsePacket(s_serial3_rx_dma_buf[s_serial3_rx_dma_old_pos]);
+
+        s_serial3_rx_dma_old_pos++;
+        if (s_serial3_rx_dma_old_pos >= SERIAL3_RX_DMA_BUF_SIZE)
+        {
+            s_serial3_rx_dma_old_pos = 0;
+        }
+    }
 }
 
 
@@ -475,7 +537,6 @@ void Serial3_ParsePacket(uint8_t data)
                 SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);
                 g_nav_cmd_alive = 1;
                 g_nav_last_rx_tick = xTaskGetTickCount(); // 刷新nav2看门狗
-                
             }
 
             // SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);
@@ -516,14 +577,14 @@ void Serial3_SendMeasPacket(float w1, float w2, float w3, float w4)
     buf[3] = 0x10; // LEN_BODY
 
     // 打包4个浮点数
-    memcpy(&buf[4], &w1, 4);//小端序
+    memcpy(&buf[4], &w1, 4); // 小端序
     memcpy(&buf[8], &w2, 4);
     memcpy(&buf[12], &w3, 4);
     memcpy(&buf[16], &w4, 4);
 
     // 计算CRC16
-    uint16_t crc = Serial3_CRC16(buf, 20);   
-    buf[20] = crc & 0xFF;   //发送CRC也是小端序
+    uint16_t crc = Serial3_CRC16(buf, 20);
+    buf[20] = crc & 0xFF; // 发送CRC也是小端序
     buf[21] = (crc >> 8) & 0xFF;
 
     // 发送数据包

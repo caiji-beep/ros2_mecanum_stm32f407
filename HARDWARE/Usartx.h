@@ -47,5 +47,6 @@ void Serial3_SendByte(uint8_t Byte);
 void Serial3_SendArray(uint8_t *Array, uint16_t Length);
 void Serial3_SendFloat(float value);
 uint8_t Serial3_GetRXFlag(void);
+void Serial3_RxDmaDrain(void);
 
 #endif 
