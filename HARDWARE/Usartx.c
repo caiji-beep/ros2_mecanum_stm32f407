@@ -24,7 +24,12 @@ extern volatile uint8_t g_nav_cmd_alive;
 
 #define SERIAL3_RX_DMA_BUF_SIZE 256
 
+
+// 使用 AC5 专属的 __attribute__((at(地址))) 语法
+// 强制分配到普通 SRAM 的靠后位置 (比如 0x20001000)，避开前面的变量
+//__attribute__((at(0x20001000)))
 static uint8_t s_serial3_rx_dma_buf[SERIAL3_RX_DMA_BUF_SIZE];
+
 static volatile uint16_t s_serial3_rx_dma_old_pos = 0;
 
 float vA_mps, vB_mps, vC_mps, vD_mps;
@@ -42,6 +47,14 @@ volatile uint16_t Serial3_RXData;
 volatile uint8_t Serial3_RXFlag;
 volatile uint32_t g_serial3_rx_ok_count;
 volatile uint32_t g_serial3_crc_error_count;
+volatile uint32_t g_serial3_dma_drain_count;
+volatile uint32_t g_serial3_dma_byte_count;
+volatile uint32_t g_serial3_idle_irq_count;
+volatile uint32_t g_serial3_nav_apply_count;
+volatile uint32_t g_serial3_guard_drop_count;
+volatile uint16_t g_serial3_dma_pos_dbg;
+volatile uint16_t g_serial3_dma_old_pos_dbg;
+volatile uint16_t g_serial3_ore_error_count;
 
 #define SERIAL3_WHEEL_SPEED_LIMIT_MPS 1.50f
 
@@ -319,7 +332,7 @@ void Serial3_Init(void)
     //USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
     // 使能USART3
-    USART_Cmd(USART3, ENABLE);
+    
 
     /*配置DMA DMA1_Stream1 DMA_Channel_4*/
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
@@ -357,6 +370,7 @@ void Serial3_Init(void)
 
     USART_DMACmd(USART3, USART_DMAReq_Rx, ENABLE);
     USART_ITConfig(USART3, USART_IT_IDLE, ENABLE);
+    USART_Cmd(USART3, ENABLE);
 }
 
 /* ========= 串口3发送字节 ========= */
@@ -397,16 +411,33 @@ uint8_t Serial3_GetRXFlag(void)
 
 void Serial3_RxDmaDrain(void)
 {
+    //清楚ore,如果 ORE 不清除，DMA 会永久停止接收
+    if (USART_GetFlagStatus(USART3, USART_FLAG_ORE) != RESET)
+    {
+        volatile uint32_t tmp;
+        tmp = USART3->SR;
+        tmp = USART3->DR;
+        (void)tmp; // 先读 SR 再读 DR 即可清除 ORE 标志位
+
+        g_serial3_ore_error_count++;
+    }
     uint16_t pos = SERIAL3_RX_DMA_BUF_SIZE - DMA_GetCurrDataCounter(DMA1_Stream1);
+
+    
 
     if (pos >= SERIAL3_RX_DMA_BUF_SIZE)
     {
         pos = 0;
     }
 
+    g_serial3_dma_drain_count++;
+    g_serial3_dma_pos_dbg = pos;
+    g_serial3_dma_old_pos_dbg = s_serial3_rx_dma_old_pos;
+
     while (s_serial3_rx_dma_old_pos != pos)
     {
         Serial3_ParsePacket(s_serial3_rx_dma_buf[s_serial3_rx_dma_old_pos]);
+        g_serial3_dma_byte_count++;
 
         s_serial3_rx_dma_old_pos++;
         if (s_serial3_rx_dma_old_pos >= SERIAL3_RX_DMA_BUF_SIZE)
@@ -414,6 +445,8 @@ void Serial3_RxDmaDrain(void)
             s_serial3_rx_dma_old_pos = 0;
         }
     }
+
+    g_serial3_dma_old_pos_dbg = s_serial3_rx_dma_old_pos;
 }
 
 
@@ -536,7 +569,13 @@ void Serial3_ParsePacket(uint8_t data)
             {
                 SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);
                 g_nav_cmd_alive = 1;
+                g_serial3_nav_apply_count++;
                 g_nav_last_rx_tick = xTaskGetTickCount(); // 刷新nav2看门狗
+            }
+
+            else
+            {
+                g_serial3_guard_drop_count++;
             }
 
             // SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);

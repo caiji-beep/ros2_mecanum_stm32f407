@@ -26,6 +26,13 @@ extern volatile uint16_t Serial3_RXData;
 extern volatile uint8_t Serial3_RXFlag;
 extern volatile uint32_t g_serial3_rx_ok_count;
 extern volatile uint32_t g_serial3_crc_error_count;
+extern volatile uint32_t g_serial3_dma_drain_count;
+extern volatile uint32_t g_serial3_dma_byte_count;
+extern volatile uint32_t g_serial3_idle_irq_count;
+extern volatile uint32_t g_serial3_nav_apply_count;
+extern volatile uint32_t g_serial3_guard_drop_count;
+extern volatile uint16_t g_serial3_dma_pos_dbg;
+extern volatile uint16_t g_serial3_dma_old_pos_dbg;
 
 void Serial2_Init(void);
 void Serial2_SendByte(uint8_t Byte);

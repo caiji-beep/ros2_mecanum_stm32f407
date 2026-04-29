@@ -42,8 +42,13 @@ void Uart_Task(void *pvParameters)
     // static int led = 0;
     while (1)
     {
-        // 1. 阻塞等待，直到任一队列有数据
-        xActivatedMember = xQueueSelectFromSet(gqueueset_handle, portMAX_DELAY);
+        // Wait for UART queue activity; timeout also drains USART3 DMA.
+        xActivatedMember = xQueueSelectFromSet(gqueueset_handle, pdMS_TO_TICKS(5));
+        if (xActivatedMember == NULL)
+        {
+            Serial3_RxDmaDrain();
+            continue;
+        }
         // if (led)
         //     LED1_OFF();
         // else
@@ -62,15 +67,14 @@ void Uart_Task(void *pvParameters)
         {
             if (xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
             {
-                while(xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
+                while (xQueueReceive(gUart3RxQ, &rx_byte, 0) == pdTRUE)
                 {
-
                 }
                 Serial3_RxDmaDrain();
                 processed++;
             }
         }
-        if(processed >= 32)
+        if (processed >= 32)
         {
             processed = 0;
             vTaskDelay(1); // 让出CPU
@@ -128,6 +132,7 @@ void USART3_IRQHandler(void)
     {
         volatile uint32_t tmp;
 
+        g_serial3_idle_irq_count++;
         tmp = USART3->SR;
         tmp = USART3->DR;
         (void)tmp;

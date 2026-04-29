@@ -227,7 +227,7 @@ targets:
               noInit: false
               tag: IRAM
             - id: 2
-              isChecked: true
+              isChecked: false
               mem:
                 size: "0x10000"
                 startAddr: "0x10000000"
