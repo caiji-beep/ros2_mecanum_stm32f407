@@ -56,7 +56,7 @@
     name="${tf_prefix}front_left_wheel_link">
     <inertial>
       <origin
-        xyz="-0.090148 -0.1069 0.045868"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="0.63948" />
@@ -111,7 +111,7 @@
     name="${tf_prefix}rear_left_wheel_link">
     <inertial>
       <origin
-        xyz="0.094852 -0.1069 0.045868"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="0.63948" />
@@ -166,7 +166,7 @@
     name="${tf_prefix}rear_right_wheel_link">
     <inertial>
       <origin
-        xyz="0.094852 0.1071 0.045868"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="0.63948" />
@@ -221,7 +221,7 @@
     name="${tf_prefix}front_right_wheel_link">
     <inertial>
       <origin
-        xyz="-0.090148 0.1071 0.045868"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
         value="0.63948" />
@@ -427,8 +427,6 @@
   </gazebo>
 
 </robot>
-
-
 
 
 
