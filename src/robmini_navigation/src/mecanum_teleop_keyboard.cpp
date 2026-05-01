@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
@@ -50,8 +51,22 @@ public:
     // 创建速度指令发布器。
     cmd_vel_publisher_ = create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic, 10);
 
+    input_fd_ = STDIN_FILENO;
+    if (!isatty(input_fd_)) {
+      const int tty_fd = ::open("/dev/tty", O_RDONLY);
+      if (tty_fd >= 0) {
+        input_fd_ = tty_fd;
+        owns_input_fd_ = true;
+      }
+    }
+
     // 保存终端原始配置，后续读取键盘时会临时切换为非规范模式。
-    tcgetattr(STDIN_FILENO, &original_termios_);
+    terminal_available_ = tcgetattr(input_fd_, &original_termios_) == 0;
+    if (!terminal_available_) {
+      RCLCPP_WARN(
+        get_logger(),
+        "No interactive terminal is available. Run this node in a TTY if keyboard input is needed.");
+    }
 
     last_cmd_time_ = now();
 
@@ -68,11 +83,16 @@ public:
   ~MecanumTeleopKeyboard() override
   {
     running_.store(false);
-    restore_terminal();
-    publish_stop();
 
     if (keyboard_thread_.joinable()) {
       keyboard_thread_.join();
+    }
+
+    publish_stop();
+    restore_terminal();
+
+    if (owns_input_fd_ && input_fd_ >= 0) {
+      ::close(input_fd_);
     }
   }
 
@@ -86,13 +106,19 @@ private:
    */
   char read_key()
   {
+    if (!terminal_available_) {
+      return 0;
+    }
+
     termios raw = original_termios_;
     raw.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 0;
+    tcsetattr(input_fd_, TCSANOW, &raw);
 
     fd_set readfds;
     FD_ZERO(&readfds);
-    FD_SET(STDIN_FILENO, &readfds);
+    FD_SET(input_fd_, &readfds);
 
     // 设置 select 超时时间为 50 ms，避免线程长时间阻塞。
     timeval timeout{};
@@ -101,8 +127,8 @@ private:
 
     char key = 0;
 
-    if (select(STDIN_FILENO + 1, &readfds, nullptr, nullptr, &timeout) > 0) {
-      (void)read(STDIN_FILENO, &key, 1);
+    if (select(input_fd_ + 1, &readfds, nullptr, nullptr, &timeout) > 0) {
+      (void)read(input_fd_, &key, 1);
     }
 
     restore_terminal();
@@ -114,7 +140,9 @@ private:
    */
   void restore_terminal()
   {
-    tcsetattr(STDIN_FILENO, TCSANOW, &original_termios_);
+    if (terminal_available_) {
+      tcsetattr(input_fd_, TCSANOW, &original_termios_);
+    }
   }
 
   /**
@@ -137,39 +165,39 @@ private:
     using namespace std::chrono_literals;
 
     while (rclcpp::ok() && running_.load()) {
-      auto twist = geometry_msgs::msg::Twist();
+      auto requested_twist = geometry_msgs::msg::Twist();
       const char key = read_key();
       bool handled = false;
 
       // 根据键盘输入设置线速度、横向速度或角速度。
       switch (key) {
         case 'w':
-          twist.linear.x = linear_speed_;
+          requested_twist.linear.x = linear_speed_;
           handled = true;
           break;
 
         case 's':
-          twist.linear.x = -linear_speed_;
+          requested_twist.linear.x = -linear_speed_;
           handled = true;
           break;
 
         case 'a':
-          twist.linear.y = strafe_speed_;
+          requested_twist.linear.y = strafe_speed_;
           handled = true;
           break;
 
         case 'd':
-          twist.linear.y = -strafe_speed_;
+          requested_twist.linear.y = -strafe_speed_;
           handled = true;
           break;
 
         case 'q':
-          twist.angular.z = angular_speed_;
+          requested_twist.angular.z = angular_speed_;
           handled = true;
           break;
 
         case 'e':
-          twist.angular.z = -angular_speed_;
+          requested_twist.angular.z = -angular_speed_;
           handled = true;
           break;
 
@@ -189,18 +217,22 @@ private:
       }
 
       if (handled) {
-        // 有效按键：更新时间戳并发布当前速度指令。
+        // 有效按键：更新时间戳并缓存当前速度指令。
         std::lock_guard<std::mutex> lock(cmd_mutex_);
         last_cmd_time_ = now();
-        cmd_vel_publisher_->publish(twist);
-      } else {
-        // 无有效按键：超过超时时间后自动发送停止指令。
-        std::lock_guard<std::mutex> lock(cmd_mutex_);
+        current_twist_ = requested_twist;
+      }
 
-        if ((now() - last_cmd_time_).seconds() > command_timeout_) {
-          publish_stop();
+      geometry_msgs::msg::Twist output_twist;
+      {
+        std::lock_guard<std::mutex> lock(cmd_mutex_);
+        if ((now() - last_cmd_time_).seconds() <= command_timeout_) {
+          output_twist = current_twist_;
+        } else {
+          current_twist_ = geometry_msgs::msg::Twist();
         }
       }
+      cmd_vel_publisher_->publish(output_twist);
 
       // 控制循环频率，减少 CPU 占用。
       std::this_thread::sleep_for(20ms);
@@ -220,6 +252,9 @@ private:
 
   // 终端原始配置，用于程序退出或读取结束后恢复终端状态。
   termios original_termios_{};
+  int input_fd_{STDIN_FILENO};
+  bool owns_input_fd_{false};
+  bool terminal_available_{false};
 
   // 键盘监听线程。
   std::thread keyboard_thread_;
@@ -229,6 +264,7 @@ private:
 
   // 上一次有效速度指令的时间。
   rclcpp::Time last_cmd_time_;
+  geometry_msgs::msg::Twist current_twist_;
 
   // 速度发布和时间更新互斥锁。
   std::mutex cmd_mutex_;

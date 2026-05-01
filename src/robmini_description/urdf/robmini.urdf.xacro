@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:property name="mesh_dir" value="file://$(find robmini_description)/meshes" />
+  <!-- file://$(find robmini_description)/meshes -->
+  <xacro:property name="mesh_dir" value="package://robmini_description/meshes" />
   <xacro:property
     name="use_planar_drive"
     value="${str(use_gazebo).lower() in ['true', '1', 'yes', 'on'] and sim_drive_mode == 'planar'}" />
