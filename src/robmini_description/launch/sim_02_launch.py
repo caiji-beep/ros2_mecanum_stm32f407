@@ -130,7 +130,7 @@ def _prepare_robot(context, *args, **kwargs):
                         "-y",
                         "0",
                         "-z",
-                        "0.055",
+                        "0.078",
                     ],
                 )
             ],
