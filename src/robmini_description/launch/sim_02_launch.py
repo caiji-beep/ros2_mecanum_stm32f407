@@ -69,6 +69,10 @@ def _prepare_robot(context, *args, **kwargs):
 
     use_sim_time = context.launch_configurations.get("use_sim_time", "true")
     use_sim_time_bool = _as_bool(use_sim_time)
+    sim_drive_mode = context.launch_configurations.get("sim_drive_mode", "planar").strip()
+    if sim_drive_mode not in ("ros2_control", "planar"):
+        raise ValueError("sim_drive_mode must be 'ros2_control' or 'planar'")
+
     controller_manager_path = f"/{namespace}/controller_manager" if namespace else "/controller_manager"
     pkg_share = get_package_share_directory("robmini_description")
 
@@ -77,10 +81,12 @@ def _prepare_robot(context, *args, **kwargs):
         "urdf",
         "robmini_run.urdf.xacro",
     )
-    controller_yaml = _write_controller_yaml(
-        os.path.join(pkg_share, "config", "robmini_mecanum_controllers.yaml"),
-        tf_prefix,
-    )
+    controller_yaml = ""
+    if sim_drive_mode == "ros2_control":
+        controller_yaml = _write_controller_yaml(
+            os.path.join(pkg_share, "config", "robmini_mecanum_controllers.yaml"),
+            tf_prefix,
+        )
 
     robot_description = ParameterValue(
         Command([
@@ -92,13 +98,15 @@ def _prepare_robot(context, *args, **kwargs):
             namespace,
             " use_gazebo:=true",
             " use_mock:=false",
+            " sim_drive_mode:=",
+            sim_drive_mode,
             " controller_config:=",
             controller_yaml,
         ]),
         value_type=str,
     )
 
-    return [
+    actions = [
         Node(
             package="robot_state_publisher",
             executable="robot_state_publisher",
@@ -135,29 +143,49 @@ def _prepare_robot(context, *args, **kwargs):
                 )
             ],
         ),
-        TimerAction(
-            period=10.0,
-            actions=[
-                Node(
-                    package="controller_manager",
-                    executable="spawner",
-                    arguments=["joint_state_broadcaster", "--controller-manager", controller_manager_path],
-                    output="screen",
-                )
-            ],
-        ),
-        TimerAction(
-            period=12.0,
-            actions=[
-                Node(
-                    package="controller_manager",
-                    executable="spawner",
-                    arguments=["mecanum_drive_controller", "--controller-manager", controller_manager_path],
-                    output="screen",
-                )
-            ],
-        ),
     ]
+
+    if sim_drive_mode == "ros2_control":
+        actions.extend([
+            TimerAction(
+                period=10.0,
+                actions=[
+                    Node(
+                        package="controller_manager",
+                        executable="spawner",
+                        arguments=["joint_state_broadcaster", "--controller-manager", controller_manager_path],
+                        output="screen",
+                    )
+                ],
+            ),
+            TimerAction(
+                period=12.0,
+                actions=[
+                    Node(
+                        package="controller_manager",
+                        executable="spawner",
+                        arguments=["mecanum_drive_controller", "--controller-manager", controller_manager_path],
+                        output="screen",
+                    )
+                ],
+            ),
+        ])
+    else:
+        actions.append(
+            Node(
+                package="joint_state_publisher",
+                executable="joint_state_publisher",
+                namespace=namespace,
+                name="joint_state_publisher",
+                parameters=[{
+                    "robot_description": robot_description,
+                    "rate": 30,
+                    "use_sim_time": use_sim_time_bool,
+                }],
+            )
+        )
+
+    return actions
 
 
 def generate_launch_description():
@@ -182,6 +210,12 @@ def generate_launch_description():
         DeclareLaunchArgument("namespace", default_value=""),
         DeclareLaunchArgument("tf_prefix", default_value=""),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
+        DeclareLaunchArgument(
+            "sim_drive_mode",
+            default_value="planar",
+            choices=["ros2_control", "planar"],
+            description="Gazebo drive source: ros2_control or planar",
+        ),
         DeclareLaunchArgument("world", default_value=os.path.join(pkg_share, "worlds", "room_mini.world")),
         DeclareLaunchArgument("gui", default_value="true"),
         DeclareLaunchArgument("paused", default_value="false"),

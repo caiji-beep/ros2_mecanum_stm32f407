@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:property name="mesh_dir" value="file://$(find robmini_description)/meshes" />
+  <xacro:property
+    name="use_planar_drive"
+    value="${str(use_gazebo).lower() in ['true', '1', 'yes', 'on'] and sim_drive_mode == 'planar'}" />
+  <xacro:property name="planar_wheel_collision_radius" value="0.04" />
+  <xacro:property name="wheel_ground_mu" value="${0.02 if use_planar_drive else 1.5}" />
+  <xacro:property name="wheel_ground_mu2" value="${0.02 if use_planar_drive else 1.2}" />
+  <xacro:property name="wheel_ground_slip" value="${1.0 if use_planar_drive else 0.0}" />
 
   <!-- <link name="${tf_prefix}base_footprint" />
 
@@ -88,9 +95,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="${mesh_dir}/left_front_wheel_link.STL" />
-        <!-- <mesh
-          filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_front_wheel_link.STL" /> -->
+        <xacro:if value="${use_planar_drive}">
+          <sphere radius="${planar_wheel_collision_radius}" />
+        </xacro:if>
+        <xacro:unless value="${use_planar_drive}">
+          <mesh filename="${mesh_dir}/left_front_wheel_link.STL" />
+          <!-- <mesh
+            filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_front_wheel_link.STL" /> -->
+        </xacro:unless>
       </geometry>
     </collision>
   </link>
@@ -143,9 +155,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="${mesh_dir}/left_back_wheel_link.STL" />
-        <!-- <mesh
-          filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_back_wheel_link.STL" /> -->
+        <xacro:if value="${use_planar_drive}">
+          <sphere radius="${planar_wheel_collision_radius}" />
+        </xacro:if>
+        <xacro:unless value="${use_planar_drive}">
+          <mesh filename="${mesh_dir}/left_back_wheel_link.STL" />
+          <!-- <mesh
+            filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_back_wheel_link.STL" /> -->
+        </xacro:unless>
       </geometry>
     </collision>
   </link>
@@ -198,9 +215,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="${mesh_dir}/right_back_wheel_link.STL" />
-        <!-- <mesh
-          filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_back_wheel_link.STL" /> -->
+        <xacro:if value="${use_planar_drive}">
+          <sphere radius="${planar_wheel_collision_radius}" />
+        </xacro:if>
+        <xacro:unless value="${use_planar_drive}">
+          <mesh filename="${mesh_dir}/right_back_wheel_link.STL" />
+          <!-- <mesh
+            filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_back_wheel_link.STL" /> -->
+        </xacro:unless>
       </geometry>
     </collision>
   </link>
@@ -253,9 +275,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="${mesh_dir}/right_front_wheel_link.STL" />
-        <!-- <mesh
-          filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_front_wheel_link.STL" /> -->
+        <xacro:if value="${use_planar_drive}">
+          <sphere radius="${planar_wheel_collision_radius}" />
+        </xacro:if>
+        <xacro:unless value="${use_planar_drive}">
+          <mesh filename="${mesh_dir}/right_front_wheel_link.STL" />
+          <!-- <mesh
+            filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_front_wheel_link.STL" /> -->
+        </xacro:unless>
       </geometry>
     </collision>
   </link>
@@ -378,9 +405,11 @@
         <surface>
         <friction>
             <ode>
-            <mu>1.5</mu>
-            <mu2>1.2</mu2>
+            <mu>${wheel_ground_mu}</mu>
+            <mu2>${wheel_ground_mu2}</mu2>
             <fdir1>1 -1 0</fdir1>
+            <slip1>${wheel_ground_slip}</slip1>
+            <slip2>${wheel_ground_slip}</slip2>
             </ode>
         </friction>
         </surface>
@@ -391,9 +420,11 @@
         <surface>
         <friction>
             <ode>
-            <mu>1.5</mu>
-            <mu2>1.2</mu2>
+            <mu>${wheel_ground_mu}</mu>
+            <mu2>${wheel_ground_mu2}</mu2>
             <fdir1>1 1 0</fdir1>
+            <slip1>${wheel_ground_slip}</slip1>
+            <slip2>${wheel_ground_slip}</slip2>
             </ode>
         </friction>
         </surface>
@@ -404,9 +435,11 @@
         <surface>
         <friction>
             <ode>
-            <mu>1.5</mu>
-            <mu2>1.2</mu2>
+            <mu>${wheel_ground_mu}</mu>
+            <mu2>${wheel_ground_mu2}</mu2>
             <fdir1>1 1 0</fdir1>
+            <slip1>${wheel_ground_slip}</slip1>
+            <slip2>${wheel_ground_slip}</slip2>
             </ode>
         </friction>
         </surface>
@@ -417,9 +450,11 @@
         <surface>
         <friction>
             <ode>
-            <mu>1.5</mu>
-            <mu2>1.2</mu2>
+            <mu>${wheel_ground_mu}</mu>
+            <mu2>${wheel_ground_mu2}</mu2>
             <fdir1>1 -1 0</fdir1>
+            <slip1>${wheel_ground_slip}</slip1>
+            <slip2>${wheel_ground_slip}</slip2>
             </ode>
         </friction>
         </surface>
@@ -427,6 +462,5 @@
   </gazebo>
 
 </robot>
-
 
 

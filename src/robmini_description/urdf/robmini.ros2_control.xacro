@@ -2,15 +2,24 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robmini">
   <xacro:macro
     name="robmini_ros2_control"
-    params="use_mock_bool:='false' use_gazebo_bool:='false' controller_config:='' ros_namespace:=''">
+    params="use_mock_bool:='false' use_gazebo_bool:='false' sim_drive_mode:='planar' controller_config:='' ros_namespace:='' frame_prefix:=''">
 
+    <xacro:property
+      name="use_gazebo_ros2_control"
+      value="${use_gazebo_bool and sim_drive_mode == 'ros2_control'}" />
+    <xacro:property
+      name="use_gazebo_planar_move"
+      value="${use_gazebo_bool and sim_drive_mode == 'planar'}" />
+
+    <!-- 如果 use_gazebo_planar_move 这个变量的值是 False，那就执行下面代码 -->
+    <xacro:unless value="${use_gazebo_planar_move}">
     <ros2_control
-      name="${'mecanum_gazebo_system' if use_gazebo_bool else ('mecanum_mock_system' if use_mock_bool else 'mecanum_hw_system')}"
+      name="${'mecanum_gazebo_system' if use_gazebo_ros2_control else ('mecanum_mock_system' if use_mock_bool else 'mecanum_hw_system')}"
       type="system">
       <hardware>
-        <plugin>${'gazebo_ros2_control/GazeboSystem' if use_gazebo_bool else ('mock_components/GenericSystem' if use_mock_bool else 'mecanum_hw_interface/MecanumHWSystem')}</plugin>
+        <plugin>${'gazebo_ros2_control/GazeboSystem' if use_gazebo_ros2_control else ('mock_components/GenericSystem' if use_mock_bool else 'mecanum_hw_interface/MecanumHWSystem')}</plugin>
 
-        <xacro:if value="${use_mock_bool and not use_gazebo_bool}">
+        <xacro:if value="${use_mock_bool and not use_gazebo_ros2_control}">
           <param name="fake_sensor_commands">true</param>
         </xacro:if>
 
@@ -57,8 +66,9 @@
         <state_interface name="velocity" />
       </joint>
     </ros2_control>
+    </xacro:unless>
 
-    <xacro:if value="${use_gazebo_bool}">
+    <xacro:if value="${use_gazebo_ros2_control}">
     <xacro:property
         name="topic_ns"
         value="${'/' + ros_namespace if ros_namespace != '' else ''}" />
@@ -84,6 +94,32 @@
         </plugin>
 
 
+    </gazebo>
+    </xacro:if>
+
+    <xacro:if value="${use_gazebo_planar_move}">
+    <gazebo>
+        <plugin filename="libgazebo_ros_planar_move.so" name="gazebo_ros_planar_move">
+        <ros>
+            <namespace>${ros_namespace}</namespace>
+            <remapping>cmd_vel:=cmd_vel</remapping>
+            <remapping>odom:=odom</remapping>
+            <remapping>tf:=/tf</remapping>
+        </ros>
+
+        <update_rate>100</update_rate>
+        <publish_rate>50</publish_rate>
+
+        <publish_odom>true</publish_odom>
+        <publish_odom_tf>true</publish_odom_tf>
+
+        <odometry_frame>${frame_prefix}odom</odometry_frame>
+        <robot_base_frame>${frame_prefix}base_link</robot_base_frame>
+
+        <covariance_x>0.001</covariance_x>
+        <covariance_y>0.001</covariance_y>
+        <covariance_yaw>0.01</covariance_yaw>
+        </plugin>
     </gazebo>
     </xacro:if>
   </xacro:macro>

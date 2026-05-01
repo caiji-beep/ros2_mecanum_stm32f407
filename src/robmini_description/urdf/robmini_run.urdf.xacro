@@ -5,6 +5,7 @@
     <xacro:arg name="namespace" default=""/>
     <xacro:arg name="use_mock" default="false"/>
     <xacro:arg name="use_gazebo" default="false"/>
+    <xacro:arg name="sim_drive_mode" default="planar"/>  <!-- /ros2_control-->
     <xacro:arg name="controller_config" default=""/>
 
     
@@ -13,6 +14,7 @@
     <xacro:property name="ros_namespace" value="$(arg namespace)" />
     <xacro:property name="use_mock" value="$(arg use_mock)" />
     <xacro:property name="use_gazebo" value="$(arg use_gazebo)" />
+    <xacro:property name="sim_drive_mode" value="$(arg sim_drive_mode)" />
     <xacro:property name="controller_config" value="$(arg controller_config)" />
 
     <!-- TF 前缀处理保持不变 -->
@@ -32,6 +34,8 @@
     <xacro:robmini_ros2_control
     use_mock_bool="${str(use_mock).lower() in ['true', '1', 'yes', 'on']}"
     use_gazebo_bool="${str(use_gazebo).lower() in ['true', '1', 'yes', 'on']}"
+    sim_drive_mode="${sim_drive_mode}"
     controller_config="${controller_config}"
-    ros_namespace="${ros_namespace}" />
+    ros_namespace="${ros_namespace}"
+    frame_prefix="${tf_prefix}" />
 </robot>
