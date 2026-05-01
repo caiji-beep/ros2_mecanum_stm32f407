@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:property name="mesh_dir" value="file://$(find robmini_description)/meshes" />
 
   <!-- <link name="${tf_prefix}base_footprint" />
 
@@ -30,8 +31,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/base_link.STL" />
+        <mesh filename="${mesh_dir}/base_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/base_link.STL" /> -->
       </geometry>
@@ -46,8 +46,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/base_link.STL" />
+        <mesh filename="${mesh_dir}/base_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/base_link.STL" /> -->
       </geometry>
@@ -74,8 +73,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/left_front_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/left_front_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_front_wheel_link.STL" /> -->
       </geometry>
@@ -90,8 +88,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/left_front_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/left_front_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_front_wheel_link.STL" /> -->
       </geometry>
@@ -131,8 +128,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/left_back_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/left_back_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_back_wheel_link.STL" /> -->
       </geometry>
@@ -147,8 +143,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/left_back_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/left_back_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/left_back_wheel_link.STL" /> -->
       </geometry>
@@ -188,8 +183,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/right_back_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/right_back_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_back_wheel_link.STL" /> -->
       </geometry>
@@ -204,8 +198,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/right_back_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/right_back_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_back_wheel_link.STL" /> -->
       </geometry>
@@ -245,8 +238,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/right_front_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/right_front_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_front_wheel_link.STL" /> -->
       </geometry>
@@ -261,8 +253,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/right_front_wheel_link.STL" />
+        <mesh filename="${mesh_dir}/right_front_wheel_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/right_front_wheel_link.STL" /> -->
       </geometry>
@@ -302,8 +293,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/lidar_link.STL" />
+        <mesh filename="${mesh_dir}/lidar_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/lidar_link.STL" /> -->
       </geometry>
@@ -318,8 +308,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://robmini_description/meshes/lidar_link.STL" />
+        <mesh filename="${mesh_dir}/lidar_link.STL" />
         <!-- <mesh
           filename="file:///home/ksnc/robotmini_ws/src/robmini_description/meshes/lidar_link.STL" /> -->
       </geometry>

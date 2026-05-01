@@ -7,12 +7,12 @@ amcl:
     alpha3: 0.2
     alpha4: 0.2
     alpha5: 0.2
-    base_frame_id: "${robot_name}/base_link" 
+    base_frame_id: "${base_frame}"  
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
     beam_skip_threshold: 0.3
     do_beamskip: false
-    global_frame_id: "${robot_name}/map"
+    global_frame_id: "${map_frame}"
     lambda_short: 0.1
     laser_likelihood_max_dist: 2.0
     laser_max_range: 100.0
@@ -21,7 +21,7 @@ amcl:
     max_beams: 60
     max_particles: 5000
     min_particles: 1000
-    odom_frame_id: "${robot_name}/odom"
+    odom_frame_id: "${odom_frame}"
     pf_err: 0.05
     pf_z: 0.99
     recovery_alpha_fast: 0.0
@@ -38,14 +38,14 @@ amcl:
     z_max: 0.05
     z_rand: 0.5
     z_short: 0.05
-    scan_topic: /${robot_name}/scan
+    scan_topic: scan
 
 bt_navigator:
   ros__parameters:
     use_sim_time: False
-    global_frame: "${robot_name}/map"
-    robot_base_frame: "${robot_name}/base_link"
-    odom_topic: /${robot_name}/odom
+    global_frame: "${map_frame}"
+    robot_base_frame: "${base_frame}"
+    odom_topic: odom
     bt_loop_duration: 10
     default_server_timeout: 20
     wait_for_service_timeout: 1000
@@ -137,29 +137,29 @@ controller_server:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
       min_vel_x: 0.0
-      min_vel_y: 0.0
-      max_vel_x: 0.26
-      max_vel_y: 0.0
-      max_vel_theta: 1.0
+      min_vel_y: 0.0 #-0.25
+      max_vel_x: 0.40 #0.26
+      max_vel_y: 0.0 #0.25
+      max_vel_theta: 1.3 #1.0
       min_speed_xy: 0.0
-      max_speed_xy: 0.26
+      max_speed_xy: 0.40 #0.26
       min_speed_theta: 0.0
       # Add high threshold velocity for turtlebot 3 issue.
       # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
-      acc_lim_x: 2.5
-      acc_lim_y: 0.0
+      acc_lim_x: 1.5 #2.5
+      acc_lim_y: 1.0 #0.0
       acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: 0.0
+      decel_lim_x: -1.5 #-2.5
+      decel_lim_y: 0.0 #-1.0
       decel_lim_theta: -3.2
       vx_samples: 20
-      vy_samples: 5
+      vy_samples: 1 #5
       vtheta_samples: 20
       sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      trans_stopped_velocity: 0.25
+      trans_stopped_velocity: 0.05 #0.25
       short_circuit_trajectory_evaluation: True
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
@@ -168,7 +168,7 @@ controller_server:
       GoalAlign.scale: 0.0
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      RotateToGoal.scale: 32.0
+      RotateToGoal.scale: 16.0 #32.0
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
 
@@ -176,8 +176,8 @@ local_costmap:
   local_costmap:
     ros__parameters:
       use_sim_time: False
-      global_frame: "${robot_name}/odom" 
-      robot_base_frame: "${robot_name}/base_link" 
+      global_frame: "${odom_frame}" 
+      robot_base_frame: "${base_frame}" 
       rolling_window: true
       width: 3
       height: 3
@@ -199,7 +199,7 @@ local_costmap:
         mark_threshold: 0
         observation_sources: scan
         scan:
-          topic: /${robot_name}/scan
+          topic: scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
@@ -216,8 +216,8 @@ global_costmap:
   global_costmap:
     ros__parameters:
       use_sim_time: False
-      global_frame: "${robot_name}/map"
-      robot_base_frame: "${robot_name}/base_link" 
+      global_frame: "${map_frame}"
+      robot_base_frame: "${base_frame}" 
       robot_radius: 0.12
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
@@ -225,7 +225,7 @@ global_costmap:
         enabled: True
         observation_sources: scan
         scan:
-          topic: /${robot_name}/scan
+          topic: scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
@@ -277,8 +277,8 @@ behavior_server:
       plugin: "nav2_behaviors/DriveOnHeading"
     wait:
       plugin: "nav2_behaviors/Wait"
-    global_frame: ${robot_name}/odom
-    robot_base_frame: "${robot_name}/base_link"
+    global_frame: "${odom_frame}"
+    robot_base_frame: "${base_frame}"
     transform_tolerance: 0.1
     use_sim_time: False
     simulate_ahead_time: 2.0
@@ -299,3 +299,41 @@ waypoint_follower:
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"
       enabled: True
       waypoint_pause_duration: 200  
+
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: False
+    smoothing_frequency: 20.0
+    scale_velocities: false
+    feedback: OPEN_LOOP
+
+    max_velocity: [0.40, 0.0, 1.3]
+    min_velocity: [-0.10, 0.0, -1.3]
+
+    max_accel: [1.5, 0.0, 3.2]
+    max_decel: [-1.5, 0.0, -3.2]
+
+    deadband_velocity: [0.0, 0.0, 0.0]
+    velocity_timeout: 1.0
+    odom_topic: odom
+    odom_duration: 0.1
+
+# velocity_smoother:
+#   ros__parameters:
+#     use_sim_time: False
+
+#     smoothing_frequency: 20.0
+#     scale_velocities: false
+#     feedback: "OPEN_LOOP"
+
+#     max_velocity: [0.40, 0.25, 1.3]
+#     min_velocity: [-0.10, -0.25, -1.3]
+
+#     max_accel: [1.5, 1.0, 3.2]
+#     max_decel: [-1.5, -1.0, -3.2]
+
+#     deadband_velocity: [0.0, 0.0, 0.0]
+#     velocity_timeout: 1.0
+
+#     odom_topic: "odom"
+#     odom_duration: 0.1

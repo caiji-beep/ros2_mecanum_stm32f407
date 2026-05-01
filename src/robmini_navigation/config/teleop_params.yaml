@@ -1,5 +1,7 @@
 mecanum_teleop_keyboard:
   ros__parameters:
-    linear_speed: 0.2    # 前进/后退速度 (m/s)
-    angular_speed: 1.0   # 旋转速度 (rad/s)
-    strafe_speed: 0.2    # 侧移速度 (m/s)
+    linear_speed: 0.2
+    angular_speed: 1.0
+    strafe_speed: 0.2
+    command_timeout: 0.2
+    cmd_vel_topic: cmd_vel

@@ -1,44 +1,57 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-demo_sim_navigation.launch.py
-先启动 simulation.launch.py
-→ 5 秒后启动 robot_bringup.launch.py
-"""
 
-from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
 import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    # 包路径
-    pkg_robot_description = get_package_share_directory('robmini_description')
-    pkg_robot_nav2        = get_package_share_directory('robmini_navigation')
+    robot_name = LaunchConfiguration("robot_name")
+    namespace = LaunchConfiguration("namespace")
+    tf_prefix = LaunchConfiguration("tf_prefix")
+    map_frame = LaunchConfiguration("map_frame")
+    use_sim_time = LaunchConfiguration("use_sim_time")
 
-    # 1. simulation.launch.py —— 立即启动
+    pkg_description = get_package_share_directory("robmini_description")
+    pkg_navigation = get_package_share_directory("robmini_navigation")
+
     simulation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_robot_description, 'launch', 'sim_02_launch.py')
-        )
+            os.path.join(pkg_description, "launch", "sim_02_launch.py")
+        ),
+        launch_arguments={
+            "robot_name": robot_name,
+            "namespace": namespace,
+            "tf_prefix": tf_prefix,
+            "use_sim_time": use_sim_time,
+        }.items(),
     )
 
-    # 2. robot_bringup.launch.py —— 延迟 5 s 启动
-    bringup_launch = IncludeLaunchDescription(
+    nav_bringup_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_robot_nav2, 'launch', 'robot_bringup.launch.py')
-        )
+            os.path.join(pkg_navigation, "launch", "robot_bringup.launch.py")
+        ),
+        launch_arguments={
+            "robot_name": robot_name,
+            "namespace": namespace,
+            "tf_prefix": tf_prefix,
+            "map_frame": map_frame,
+            "use_sim_time": use_sim_time,
+            "use_rviz": "true",
+            "map_file": "room_mini/room_mini.yaml"
+        }.items(),
     )
 
-    delay_bringup = TimerAction(
-        period=12.0,           
-        actions=[bringup_launch]
-    )
-
-    # 3. 组合并返回
     return LaunchDescription([
+        DeclareLaunchArgument("robot_name", default_value="robmini"),
+        DeclareLaunchArgument("namespace", default_value=""),
+        DeclareLaunchArgument("tf_prefix", default_value=""),
+        DeclareLaunchArgument("map_frame", default_value=""),
+        DeclareLaunchArgument("use_sim_time", default_value="true"),
         simulation_launch,
-        delay_bringup
+        TimerAction(period=12.0, actions=[nav_bringup_launch]),
     ])

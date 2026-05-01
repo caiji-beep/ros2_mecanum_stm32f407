@@ -1,213 +1,274 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+@file robmini_navigation.launch.py
+@brief RobMini 机器人 Nav2 导航系统启动文件
 
+该 launch 文件用于启动 RobMini 机器人的 Nav2 导航相关节点，主要包括：
+1. map_server：加载并发布静态地图；
+2. amcl：基于激光雷达和地图进行机器人定位；
+3. lifecycle_manager_localization：管理 map_server 和 amcl 的生命周期；
+4. navigation_launch.py：启动 Nav2 规划、控制、行为树等导航模块；
+5. rviz2：可选启动 RViz2，用于可视化地图、TF、路径和导航状态。
+
+该文件支持以下典型运行场景：
+- 单机器人导航；
+- 多机器人命名空间隔离；
+- 自定义 TF 前缀；
+- 自定义地图文件；
+- 自定义初始位姿；
+- 仿真环境或实机环境切换；
+- 可选启动 RViz2 调试界面。
+"""
 
 import os
 import tempfile
 import yaml
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument, GroupAction, IncludeLaunchDescription,
-    OpaqueFunction, SetLaunchConfiguration
-)
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node, PushRosNamespace
-from launch.actions import TimerAction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 
 
+def _as_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
 
-# ---------- ① 生成临时 YAML（带 initial_pose 嵌套写法） ----------
-def _generate_temp_yaml(context):
-    robot_name = context.launch_configurations["robot_name"]
 
-    # 模板路径
-    pkg_share = get_package_share_directory('robmini_navigation')
-    template_path = os.path.join(pkg_share, "config", "nav2_params.yaml")
+def _clean_namespace(value):
+    value = str(value or "").strip()
+    if value == "/":
+        return ""
+    return value.strip("/")
 
-    with open(template_path, "r") as f:
+
+def _join_frame(prefix, frame):
+    prefix = _clean_namespace(prefix)
+    return f"{prefix}/{frame}" if prefix else frame
+
+
+def _replace_placeholders(obj, replacements):
+    if isinstance(obj, str):
+        for key, value in replacements.items():
+            obj = obj.replace(key, value)
+        return obj
+    if isinstance(obj, list):
+        return [_replace_placeholders(item, replacements) for item in obj]
+    if isinstance(obj, dict):
+        return {key: _replace_placeholders(value, replacements) for key, value in obj.items()}
+    return obj
+
+
+def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame):
+    with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    # 递归替换 ${robot_name}
-    def _replace(obj):
-        if isinstance(obj, str):
-            return obj.replace("${robot_name}", robot_name)
-        if isinstance(obj, list):
-            return [_replace(i) for i in obj]
-        if isinstance(obj, dict):
-            return {k: _replace(v) for k, v in obj.items()}
-        return obj
-
-    config = _replace(config)
-
-    # ------ 修正 AMCL 初始位姿写法 ------
-    amcl_param = config.setdefault('amcl', {}).setdefault('ros__parameters', {})
-
-    # 清理旧散键
-    for k in list(amcl_param):
-        if k.startswith("initial_pose."):
-            amcl_param.pop(k)
-
-    # 嵌套格式（数值会在运行期被覆盖）
-    amcl_param['set_initial_pose'] = True
-    amcl_param.setdefault('initial_pose', {
-        'x': 0.0,
-        'y': 0.0,
-        'z': 0.0,
-        'yaw': 0.0
+    config = _replace_placeholders(config, {
+        "${namespace}": namespace,
+        "${tf_prefix}": tf_prefix,
+        "${base_frame}": _join_frame(tf_prefix, "base_link"),
+        "${odom_frame}": _join_frame(tf_prefix, "odom"),
+        "${map_frame}": map_frame,
     })
 
-    # ------ 补全 DWB critics（保持你原来的逻辑） ------
-    ctrl = config.get('controller_server', {}).get('ros__parameters', {})
-    follow = ctrl.get('FollowPath', {})
-    if 'critics' not in follow:
-        follow['critics'] = [
-            "RotateToGoal", "Oscillation", "BaseObstacle",
-            "GoalAlign", "PathAlign", "PathDist", "GoalDist"
-        ]
+    amcl_param = config.setdefault("amcl", {}).setdefault("ros__parameters", {})
+    for key in list(amcl_param):
+        if key.startswith("initial_pose."):
+            amcl_param.pop(key)
 
-    # 写入临时文件
-    fd, temp_path = tempfile.mkstemp(suffix=".yaml")
-    with os.fdopen(fd, "w") as f:
-        yaml.safe_dump(config, f)
+    amcl_param["set_initial_pose"] = True
+    amcl_param.setdefault("initial_pose", {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "yaw": 0.0,
+    })
 
-    return [SetLaunchConfiguration("nav2_params_path", temp_path)]
-
-
-# ---------- ② 生成 LaunchDescription ----------
-def generate_launch_description():
-    # ---------------- 声明可调参数 ----------------
-    use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='false')   # true=仿真, false=真机
-    robot_name_arg   = DeclareLaunchArgument('robot_name',   default_value='robmini')
-    initial_pose_x   = DeclareLaunchArgument('initial_pose_x', default_value='0.0')
-    initial_pose_y   = DeclareLaunchArgument('initial_pose_y', default_value='0.0')
-    initial_pose_a   = DeclareLaunchArgument('initial_pose_a', default_value='0.0')
-    use_rviz_arg     = DeclareLaunchArgument('use_rviz',     default_value='false')
-    map_file_arg     = DeclareLaunchArgument('map_file',     default_value='room_mini/115_map.yaml')
-
-    # -------- 方便后续读取的 LaunchConfiguration --------
-    use_sim_time = LaunchConfiguration('use_sim_time')
-    robot_name   = LaunchConfiguration('robot_name')
-    init_x_arg   = LaunchConfiguration('initial_pose_x')
-    init_y_arg   = LaunchConfiguration('initial_pose_y')
-    init_a_arg   = LaunchConfiguration('initial_pose_a')
-    use_rviz     = LaunchConfiguration('use_rviz')
-    map_file     = LaunchConfiguration('map_file')
-    nav2_params  = LaunchConfiguration('nav2_params_path')
-
-    # 地图完整路径
-    full_map = PathJoinSubstitution([
-        get_package_share_directory('robmini_navigation'),
-        'maps',
-        map_file
+    follow_path = (
+        config.setdefault("controller_server", {})
+        .setdefault("ros__parameters", {})
+        .setdefault("FollowPath", {})
+    )
+    follow_path.setdefault("critics", [
+        "RotateToGoal",
+        "Oscillation",
+        "BaseObstacle",
+        "GoalAlign",
+        "PathAlign",
+        "PathDist",
+        "GoalDist",
     ])
 
-    # ---------------- prepare_nodes ----------------
-    def prepare_nodes(context):
-        ns          = robot_name.perform(context)
-        nav2_yaml   = context.launch_configurations['nav2_params_path']
-        nav2_dir    = get_package_share_directory('nav2_bringup')
-        nav2_dir_01    = get_package_share_directory('robmini_navigation')
-        rviz_cfg    = PathJoinSubstitution([nav2_dir, 'rviz', 'nav2_default_view.rviz'])
-        rviz_config_dir = os.path.join(nav2_dir_01, 'rviz', 'nav2.rviz') 
+    fd, temp_path = tempfile.mkstemp(prefix="robmini_nav2_", suffix=".yaml")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        yaml.safe_dump(config, f, sort_keys=False)
+
+    direct_node_config = {namespace: config} if namespace else config
+    fd, direct_temp_path = tempfile.mkstemp(prefix="robmini_nav2_direct_", suffix=".yaml")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        yaml.safe_dump(direct_node_config, f, sort_keys=False)
+
+    return temp_path, direct_temp_path
 
 
-        # 解析 is_sim -> 布尔 use_sim_time（注意是布尔，不是字符串）
-        use_sim_time_str = context.launch_configurations.get('use_sim_time', 'false')
-        use_sim_time_bool = str(use_sim_time_str).lower() in ['1', 'true', 'yes']
+def _write_rviz_config(template_path, namespace, tf_prefix, map_frame):
+    with open(template_path, "r", encoding="utf-8") as f:
+        text = f.read()
 
-        # 转换初始位姿为 float
-        try:
-            ix = float(init_x_arg.perform(context)); iy = float(init_y_arg.perform(context)); ia = float(init_a_arg.perform(context))
-        except ValueError:
-            ix = iy = ia = 0.0
+    namespace_topic = f"/{namespace}" if namespace else ""
+    tf_prefix_text = f"{tf_prefix}/" if tf_prefix else ""
+    default_map_frame = _join_frame(tf_prefix, "map")
 
-        return [GroupAction([
-            PushRosNamespace(robot_name),
+    text = text.replace("/robmini", namespace_topic)
+    text = text.replace("robmini/", tf_prefix_text)
+    if default_map_frame != map_frame:
+        text = text.replace(f"Fixed Frame: {default_map_frame}", f"Fixed Frame: {map_frame}")
+        text = text.replace(f"        {default_map_frame}:", f"        {map_frame}:")
+        text = text.replace(f"      {default_map_frame}:", f"      {map_frame}:")
 
-            # ---------- Map Server ----------
-            Node(
-                package='nav2_map_server', executable='map_server',
-                name='map_server', output='screen',
-                parameters=[{
-                    'yaml_filename': full_map.perform(context),
-                    'frame_id': f"{ns}/map",
-                    'use_sim_time': use_sim_time_bool
-                }]
+    fd, temp_path = tempfile.mkstemp(prefix="robmini_rviz_", suffix=".rviz")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    return temp_path
+
+
+def _prepare_nodes(context, *args, **kwargs):
+    robot_name = context.launch_configurations.get("robot_name", "robmini")
+    namespace = _clean_namespace(context.launch_configurations.get("namespace", ""))
+    if not namespace:
+        namespace = _clean_namespace(robot_name)
+
+    tf_prefix = _clean_namespace(context.launch_configurations.get("tf_prefix", ""))
+    if not tf_prefix:
+        tf_prefix = namespace
+
+    map_frame = context.launch_configurations.get("map_frame", "").strip()
+    if not map_frame:
+        map_frame = _join_frame(tf_prefix, "map")
+
+    use_sim_time = context.launch_configurations.get("use_sim_time", "false")
+    use_sim_time_bool = _as_bool(use_sim_time)
+
+    try:
+        initial_x = float(context.launch_configurations.get("initial_pose_x", "0.0"))
+        initial_y = float(context.launch_configurations.get("initial_pose_y", "0.0"))
+        initial_a = float(context.launch_configurations.get("initial_pose_a", "0.0"))
+    except ValueError:
+        initial_x = initial_y = initial_a = 0.0
+
+    pkg_share = get_package_share_directory("robmini_navigation")
+    nav2_yaml, direct_nav2_yaml = _write_nav2_yaml(
+        os.path.join(pkg_share, "config", "nav2_params.yaml"),
+        namespace,
+        tf_prefix,
+        map_frame,
+    )
+
+    map_file = context.launch_configurations.get("map_file", "room_mini/115_map.yaml")
+    if os.path.isabs(map_file):
+        full_map = map_file
+    else:
+        full_map = os.path.join(pkg_share, "maps", map_file)
+
+    rviz_config = _write_rviz_config(
+        os.path.join(pkg_share, "rviz", "nav2.rviz"),
+        namespace,
+        tf_prefix,
+        map_frame,
+    )
+
+    return [
+        Node(
+            package="nav2_map_server",
+            executable="map_server",
+            name="map_server",
+            namespace=namespace,
+            output="screen",
+            parameters=[{
+                "yaml_filename": full_map,
+                "frame_id": map_frame,
+                "use_sim_time": use_sim_time_bool,
+            }],
+        ),
+        Node(
+            package="nav2_amcl",
+            executable="amcl",
+            name="amcl",
+            namespace=namespace,
+            output="screen",
+            parameters=[
+                direct_nav2_yaml,
+                {
+                    "set_initial_pose": True,
+                    "initial_pose": {
+                        "x": initial_x,
+                        "y": initial_y,
+                        "z": 0.0,
+                        "yaw": initial_a,
+                    },
+                    "use_map_topic": True,
+                    "use_sim_time": use_sim_time_bool,
+                    "base_frame_id": _join_frame(tf_prefix, "base_link"),
+                    "odom_frame_id": _join_frame(tf_prefix, "odom"),
+                    "global_frame_id": map_frame,
+                    "scan_topic": "scan",
+                },
+            ],
+        ),
+        Node(
+            package="nav2_lifecycle_manager",
+            executable="lifecycle_manager",
+            name="lifecycle_manager_localization",
+            namespace=namespace,
+            output="screen",
+            parameters=[{
+                "autostart": True,
+                "node_names": ["map_server", "amcl"],
+                "use_sim_time": use_sim_time_bool,
+            }],
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_share, "launch", "navigation_launch.py")
             ),
+            launch_arguments={
+                "namespace": namespace,
+                "params_file": nav2_yaml,
+                "autostart": "true",
+                "use_sim_time": "true" if use_sim_time_bool else "false",
+            }.items(),
+        ),
+        Node(
+            condition=IfCondition(context.launch_configurations.get("use_rviz", "false")),
+            package="rviz2",
+            executable="rviz2",
+            name="rviz2",
+            namespace=namespace,
+            output="screen",
+            arguments=["-d", rviz_config, "-f", map_frame],
+            parameters=[{"use_sim_time": use_sim_time_bool}],
+            remappings=[
+                ("tf", "/tf"),
+                ("tf_static", "/tf_static"),
+            ],
+        ),
+    ]
 
-            # ---------- AMCL ----------
-            Node(
-                package='nav2_amcl', executable='amcl',
-                name='amcl', output='screen',
-                parameters=[
-                    nav2_yaml,                               # 临时 YAML
-                    {   # 运行期覆盖：嵌套 initial_pose
-                        'set_initial_pose': True,
-                        'initial_pose': {'x': ix, 'y': iy, 'z': 0.0, 'yaw': ia},
-                        'use_map_topic': True,
-                        'use_sim_time': use_sim_time_bool,
-                        'base_frame_id':   f"{ns}/base_link",
-                        'odom_frame_id':   f"{ns}/odom",
-                        'global_frame_id': f"{ns}/map",
-                        'scan_topic':      'scan'
-                    }
-                ]
-            ),
 
-            # ---------- Lifecycle Manager (localization) ----------
-            Node(
-                package='nav2_lifecycle_manager', executable='lifecycle_manager',
-                name='lifecycle_manager_localization', output='screen',
-                parameters=[{'autostart': True, 'node_names': ['map_server', 'amcl']}]
-            ),
-
-            # ---------- Nav2 主 launch ----------
-            IncludeLaunchDescription(
-                PathJoinSubstitution([nav2_dir_01, 'launch', 'navigation_launch.py']),
-                launch_arguments={
-                    'params_file': nav2_yaml,
-                    'autostart':  'true',
-                    'use_sim_time': 'true' if use_sim_time_bool else 'false',
-                    'namespace': ns
-                }.items()
-            ),
-
-            # Node(
-            #     package="robmini_navigation",
-            #     executable="odom_bridge",
-            #     name="odom_bridge",
-            #     output="screen"
-            # ),
-
-            # ---------- RViz ----------
-            # Node(
-            #     condition=IfCondition(use_rviz),
-            #     package='rviz2', executable='rviz2', name='rviz2',
-            #     arguments=['-d', rviz_cfg.perform(context), '-f', f"{ns}/map"],
-            #     parameters=[{'use_sim_time': True}]
-            # )
-
-            Node(
-                condition=IfCondition(use_rviz),
-                package='rviz2', executable='rviz2', name='rviz2',
-                arguments=['-d', rviz_config_dir, '-f', f"{ns}/map"],
-                parameters=[{'use_sim_time': use_sim_time_bool}]
-            )
-
-        ])]
-
-    # ---------------- LaunchDescription 返回 ----------------
+def generate_launch_description():
     return LaunchDescription([
-        use_sim_time_arg,
-        robot_name_arg, 
-        initial_pose_x, 
-        initial_pose_y, 
-        initial_pose_a,
-        use_rviz_arg, 
-        map_file_arg,
-        OpaqueFunction(function=_generate_temp_yaml),
-        OpaqueFunction(function=prepare_nodes)
+        DeclareLaunchArgument("robot_name", default_value="robmini"),
+        DeclareLaunchArgument("namespace", default_value=""),
+        DeclareLaunchArgument("tf_prefix", default_value=""),
+        DeclareLaunchArgument("map_frame", default_value=""),
+        DeclareLaunchArgument("use_sim_time", default_value="false"),
+        DeclareLaunchArgument("initial_pose_x", default_value="0.0"),
+        DeclareLaunchArgument("initial_pose_y", default_value="0.0"),
+        DeclareLaunchArgument("initial_pose_a", default_value="0.0"),
+        DeclareLaunchArgument("use_rviz", default_value="false"),
+        DeclareLaunchArgument("map_file", default_value="room_mini/115_map.yaml"),
+        OpaqueFunction(function=_prepare_nodes),
     ])

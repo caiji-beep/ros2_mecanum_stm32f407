@@ -1,78 +1,90 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robmini">
-    <xacro:macro name="robmini_ros2_control" params="use_mock_bool:='false'">
-        <!-- <ros2_control name="robmini_hardware_interface" type="system"> -->
-        <ros2_control name="${'mecanum_mock_system' if use_mock_bool else 'mecanum_hw_system'}"
-                type="system">
-            <hardware>
-                <!-- <plugin>gazebo_ros2_control/GazeboSystem</plugin> -->
-                <plugin>${'mock_components/GenericSystem' if use_mock_bool else 'mecanum_hw_interface/MecanumHWSystem'}</plugin>
+  <xacro:macro
+    name="robmini_ros2_control"
+    params="use_mock_bool:='false' use_gazebo_bool:='false' controller_config:='' ros_namespace:=''">
 
-                <xacro:if value="${use_mock_bool}">
-                    <!-- 关键：命令回灌到状态，mock 下就能看到运动了 -->
-                    <param name="fake_sensor_commands">true</param>
-                </xacro:if>
-                
-                <xacro:unless value="${use_mock_bool}">
-                    <param name="device">/dev/ttySTM32</param>
-                    <param name="baud">115200</param>
-                </xacro:unless>
-            </hardware>
+    <ros2_control
+      name="${'mecanum_gazebo_system' if use_gazebo_bool else ('mecanum_mock_system' if use_mock_bool else 'mecanum_hw_system')}"
+      type="system">
+      <hardware>
+        <plugin>${'gazebo_ros2_control/GazeboSystem' if use_gazebo_bool else ('mock_components/GenericSystem' if use_mock_bool else 'mecanum_hw_interface/MecanumHWSystem')}</plugin>
 
-            <joint name="front_left_wheel_joint">
-                <command_interface name="velocity">
-                    <param name="min">-10</param>
-                    <param name="max">10</param>
-                </command_interface>
+        <xacro:if value="${use_mock_bool and not use_gazebo_bool}">
+          <param name="fake_sensor_commands">true</param>
+        </xacro:if>
 
-                <state_interface name="position" />
-                <state_interface name="velocity" />
-            </joint>
+        <!-- 除非在跑假测试或跑仿真，否则就执行下面代码 -->
+        <xacro:unless value="${use_mock_bool or use_gazebo_bool}">
+          <param name="device">/dev/ttySTM32</param>
+          <param name="baud">115200</param>
+        </xacro:unless>
+      </hardware>
 
-            <joint name="front_right_wheel_joint">
-                <command_interface name="velocity">
-                    <param name="min">-10</param>
-                    <param name="max">10</param>
-                </command_interface>
-                <state_interface name="position" />
-                <state_interface name="velocity" />
-            </joint>
+      <joint name="front_left_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+      </joint>
 
-            <joint name="rear_right_wheel_joint">
-                <command_interface name="velocity">
-                    <param name="min">-10</param>
-                    <param name="max">10</param>
-                </command_interface>
-                
-                <state_interface name="position" />
-                <state_interface name="velocity" />
-            </joint>
+      <joint name="front_right_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+      </joint>
 
-            <joint name="rear_left_wheel_joint">
-                <command_interface name="velocity">
-                    <param name="min">-10</param>
-                    <param name="max">10</param>
-                </command_interface>
-                
-                <state_interface name="position" />
-                <state_interface name="velocity" />
-            </joint>
-        </ros2_control>
+      <joint name="rear_right_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+      </joint>
 
-        <!-- <gazebo>
-            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
-                <update_rate>50</update_rate>
+      <joint name="rear_left_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+      </joint>
+    </ros2_control>
+
+    <xacro:if value="${use_gazebo_bool}">
+    <xacro:property
+        name="topic_ns"
+        value="${'/' + ros_namespace if ros_namespace != '' else ''}" />
+
+    <gazebo>
+        <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+        <ros>
+            <namespace>${ros_namespace}</namespace>
+
+            <!-- 把控制器发布的 TF 接到全局 /tf，否则 Nav2 看不到 odom -> base_link -->
+            <remapping>${topic_ns}/mecanum_drive_controller/tf_odometry:=/tf</remapping>
+
+            <!-- 把控制器里程计话题接到 Nav2 常用的 /robmini/odom -->
+            <remapping>${topic_ns}/mecanum_drive_controller/odometry:=${topic_ns}/odom</remapping>
+
+            <!-- 把 Nav2 输出的 /robmini/cmd_vel 接到 mecanum 控制器输入 -->
+            <remapping>${topic_ns}/mecanum_drive_controller/reference_unstamped:=${topic_ns}/cmd_vel</remapping>
+        </ros>
+
+        <xacro:if value="${controller_config != ''}">
+            <parameters>${controller_config}</parameters>
+        </xacro:if>
+        </plugin>
 
 
-                <parameters>$(find robmini_description)/config/robmini_mecanum_controllers.yaml</parameters>
-                <ros>
-                    <remapping>/robmini/mecanum_drive_controller_test01/tf_odometry:=/tf</remapping>
-                    <remapping>/robmini/mecanum_drive_controller_test01/reference_unstamped:=/robmini/cmd_vel</remapping>
-                    <remapping>/robmini/mecanum_drive_controller_test01/odometry:=/robmini/odom</remapping>
-                </ros>
-            </plugin>
-        </gazebo> -->
-    </xacro:macro>
+    </gazebo>
+    </xacro:if>
+  </xacro:macro>
 </robot>
-
-
