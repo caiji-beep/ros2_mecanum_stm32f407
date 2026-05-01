@@ -1,76 +1,137 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
 
 """
+@file demo_real_navigation.launch.py
+@brief RobMini 实机导航总启动文件
 
+该 launch 文件用于按顺序启动 RobMini 实机运行所需的核心模块：
+1. real_bringup.launch.py：机器人本体、ros2_control、状态发布等；
+2. lidar.launch.py：激光雷达驱动；
+3. robot_bringup.launch.py：Nav2 地图、定位与导航模块。
+
+启动顺序通过 TimerAction 控制，避免导航节点在底层控制或雷达尚未就绪时提前启动。
+"""
+
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-from ament_index_python.packages import get_package_share_directory
-import os
 
 
 def generate_launch_description():
-        # ---------------- 声明可调参数 ----------------
-    use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='false')   # true=仿真, false=真机
-    robot_name_arg   = DeclareLaunchArgument('robot_name',   default_value='robmini')
+    """
+    @brief 生成 RobMini 实机导航系统的 launch 描述。
 
-        # -------- 方便后续读取的 LaunchConfiguration --------
-    use_sim_time       = LaunchConfiguration('use_sim_time')
-    robot_name   = LaunchConfiguration('robot_name')
+    @return LaunchDescription 对象。
+    """
 
-    # 包路径
-    pkg_robot_description = get_package_share_directory('robmini_description')
-    pkg_robot_nav2        = get_package_share_directory('robmini_navigation')
+    # 公共 launch 参数，用于传递给各个子 launch 文件。
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    robot_name = LaunchConfiguration("robot_name")
+    namespace = LaunchConfiguration("namespace")
+    tf_prefix = LaunchConfiguration("tf_prefix")
+    map_frame = LaunchConfiguration("map_frame")
 
-    # 1. real_bringup.launch.py —— 立即启动
+    # 获取功能包 share 路径。
+    pkg_description = get_package_share_directory("robmini_description")
+    pkg_navigation = get_package_share_directory("robmini_navigation")
+
+    # 启动机器人本体相关节点：
+    # 包括 robot_state_publisher、ros2_control、控制器等。
     real_bringup_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_robot_description, 'launch', 'real_bringup.launch.py')
+            os.path.join(pkg_description, "launch", "real_bringup.launch.py")
         ),
         launch_arguments={
-            'use_sim_time': use_sim_time,
-            'robot_name': robot_name
-        }.items()
+            "use_sim_time": use_sim_time,
+            "robot_name": robot_name,
+            "namespace": namespace,
+            "tf_prefix": tf_prefix,
+        }.items(),
     )
 
-    # 2. lidar.launch.py —— 延迟 3 s 启动
+    # 启动激光雷达驱动。
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_robot_nav2, 'launch', 'lidar.launch.py')
+            os.path.join(pkg_navigation, "launch", "lidar.launch.py")
         ),
         launch_arguments={
-            'robot_name': robot_name
-        }.items()
-    )
-    delay_lidar = TimerAction(
-        period=3.0,
-        actions=[lidar_launch]
+            "robot_name": robot_name,
+            "namespace": namespace,
+            "tf_prefix": tf_prefix,
+        }.items(),
     )
 
-    # 2. robot_bringup.launch.py —— 延迟 5 s 启动
-    robot_bringup_launch = IncludeLaunchDescription(
+    # 启动 Nav2 导航模块：
+    # 包括地图服务器、AMCL 定位、路径规划、控制器等。
+    nav_bringup_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_robot_nav2, 'launch', 'robot_bringup.launch.py')
+            os.path.join(pkg_navigation, "launch", "robot_bringup.launch.py")
         ),
         launch_arguments={
-            'use_sim_time': use_sim_time,
-            'robot_name': robot_name
-        }.items()
+            "use_sim_time": use_sim_time,
+            "robot_name": robot_name,
+            "namespace": namespace,
+            "tf_prefix": tf_prefix,
+            "map_frame": map_frame,
+            "use_rviz": "false",
+            "map_file": "room_mini/115_map.yaml"
+        }.items(),
     )
 
-    delay_robot_bringup = TimerAction(
-        period=5.0,
-        actions=[robot_bringup_launch]
-    )
+    return LaunchDescription(
+        [
+            # 是否使用仿真时间。
+            # 实机运行通常为 false。
+            DeclareLaunchArgument(
+                "use_sim_time",
+                default_value="false",
+            ),
 
-    # 3. 组合并返回
-    return LaunchDescription([
-        use_sim_time_arg,
-        robot_name_arg,
-        real_bringup_launch,
-        delay_lidar,
-        delay_robot_bringup
-    ])
+            # 机器人名称。
+            DeclareLaunchArgument(
+                "robot_name",
+                default_value="robmini",
+            ),
+
+            # ROS 命名空间。
+            # 多机器人场景下用于隔离节点、话题和服务。
+            DeclareLaunchArgument(
+                "namespace",
+                default_value="",
+            ),
+
+            # TF 前缀。
+            # 多机器人场景下用于区分 base_link、odom 等坐标系。
+            DeclareLaunchArgument(
+                "tf_prefix",
+                default_value="",
+            ),
+
+            # 地图坐标系名称。
+            # 若为空，通常由子 launch 文件按默认规则生成。
+            DeclareLaunchArgument(
+                "map_frame",
+                default_value="",
+            ),
+
+            # 先启动机器人底层。
+            real_bringup_launch,
+
+            # 延时启动雷达，等待底层节点初始化完成。
+            TimerAction(
+                period=3.0,
+                actions=[lidar_launch],
+            ),
+
+            # 延时启动导航，等待机器人状态和雷达数据基本就绪。
+            TimerAction(
+                period=5.0,
+                actions=[nav_bringup_launch],
+            ),
+        ]
+    )

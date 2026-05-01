@@ -1,3 +1,8 @@
+# 注意事项
+仿真模式由于物理属性问题，左平移/右平移很难做到，故nav2的yaml关掉了y方向的速度。
+然后引入了planer,当前仿真兼容planer和ros2_control，注意在使用ros2_control时，必须关掉nav2的yaml的y。
+
+
 # 快速检查
 
 ## 真实机器人启动
@@ -24,7 +29,7 @@ ros2 launch robmini_navigation demo_real_navigation.launch.py \
 ros2 launch robmini_navigation demo_sim_navigation.launch.py
 ```
 
-仿真建图过程:
+仿真建图过程（默认使用planer）:
 ```bash
 ros2 launch robmini_description sim_02_launch.py 
 ```

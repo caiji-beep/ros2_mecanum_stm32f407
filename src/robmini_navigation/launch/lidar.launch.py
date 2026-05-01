@@ -1,105 +1,221 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+@file lidar.launch.py
+@brief RobMini 激光雷达启动文件
+
+该 launch 文件用于启动 RPLIDAR 激光雷达节点，并根据机器人命名空间和
+TF 前缀设置激光雷达坐标系 frame_id。
+
+主要功能：
+1. 启动 rplidar_ros 驱动节点；
+2. 支持串口、波特率、扫描模式等参数配置；
+3. 支持多机器人场景下的 namespace 和 tf_prefix。
+"""
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+
+
+def _clean_namespace(value):
+    """
+    @brief 规范化命名空间字符串。
+
+    去除首尾空格和斜杠，避免生成异常 namespace 或 TF 前缀。
+    """
+    value = str(value or "").strip()
+
+    if value == "/":
+        return ""
+
+    return value.strip("/")
+
+
+def _join_frame(prefix, frame):
+    """
+    @brief 拼接 TF 前缀和坐标系名称。
+
+    @example
+    _join_frame("robmini", "laser") -> "robmini/laser"
+    _join_frame("", "laser")        -> "laser"
+    """
+    prefix = _clean_namespace(prefix)
+
+    return f"{prefix}/{frame}" if prefix else frame
+
+
+def _as_bool(value):
+    """
+    @brief 将 launch 字符串参数转换为布尔值。
+    """
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _prepare_node(context, *args, **kwargs):
+    """
+    @brief 根据 launch 参数动态创建 RPLIDAR 节点。
+
+    使用 OpaqueFunction 的原因是部分参数需要在运行阶段读取，
+    并参与 namespace、tf_prefix 和 laser_frame 的计算。
+    """
+
+    # 读取机器人名称，默认值为 robmini。
+    robot_name = context.launch_configurations.get("robot_name", "robmini")
+
+    # 读取命名空间；若未指定，则默认使用 robot_name。
+    namespace = _clean_namespace(
+        context.launch_configurations.get("namespace", "")
+    )
+
+    if not namespace:
+        namespace = _clean_namespace(robot_name)
+
+    # 读取 TF 前缀；若未指定，则默认使用 namespace。
+    tf_prefix = _clean_namespace(
+        context.launch_configurations.get("tf_prefix", "")
+    )
+
+    if not tf_prefix:
+        tf_prefix = namespace
+
+    # 读取激光雷达坐标系名称；若未指定，则默认使用 <tf_prefix>/laser。
+    laser_frame = context.launch_configurations.get("laser_frame", "").strip()
+
+    if not laser_frame:
+        laser_frame = _join_frame(tf_prefix, "laser")
+
+    return [
+        Node(
+            package="rplidar_ros",
+            executable="rplidar_node",
+            name="rplidar_node",
+            namespace=namespace,
+            output="screen",
+            parameters=[
+                {
+                    # 通信方式，常用值为 serial。
+                    "channel_type": context.launch_configurations.get(
+                        "channel_type",
+                        "serial",
+                    ),
+
+                    # 雷达串口设备名。
+                    "serial_port": context.launch_configurations.get(
+                        "serial_port",
+                        "/dev/ttyRadar",
+                    ),
+
+                    # 串口波特率。
+                    "serial_baudrate": int(
+                        context.launch_configurations.get(
+                            "serial_baudrate",
+                            "115200",
+                        )
+                    ),
+
+                    # 激光雷达 TF 坐标系名称。
+                    "frame_id": laser_frame,
+
+                    # 是否反转扫描方向。
+                    "inverted": _as_bool(
+                        context.launch_configurations.get(
+                            "inverted",
+                            "false",
+                        )
+                    ),
+
+                    # 是否进行角度补偿。
+                    "angle_compensate": _as_bool(
+                        context.launch_configurations.get(
+                            "angle_compensate",
+                            "true",
+                        )
+                    ),
+
+                    # 雷达扫描模式。
+                    "scan_mode": context.launch_configurations.get(
+                        "scan_mode",
+                        "Standard",
+                    ),
+                }
+            ],
+        )
+    ]
+
 
 def generate_launch_description():
-    # 声明新参数
-    robot_name_arg = DeclareLaunchArgument(
-        'robot_name',
-        default_value='robmini',
-        description='Name of the robot'
-    )
-    
-    laser_frame_arg = DeclareLaunchArgument(
-        'laser_frame',
-        default_value=[LaunchConfiguration('robot_name'), '/laser'],
-        description='Frame ID for the laser scanner'
-    )
-    
-    # 声明原始rplidar的所有参数
-    channel_type_arg = DeclareLaunchArgument(
-        'channel_type',
-        default_value='serial',
-        description='Specifying channel type of lidar'
-    )
-    
-    serial_port_arg = DeclareLaunchArgument(
-        'serial_port',
-        default_value='/dev/ttyRadar',
-        description='Specifying usb port to connected lidar'
-    )
-    
-    serial_baudrate_arg = DeclareLaunchArgument(
-        'serial_baudrate',
-        default_value='115200',
-        description='Specifying usb port baudrate to connected lidar'
-    )
-    
-    inverted_arg = DeclareLaunchArgument(
-        'inverted',
-        default_value='false',
-        description='Specifying whether or not to invert scan data'
-    )
-    
-    angle_compensate_arg = DeclareLaunchArgument(
-        'angle_compensate',
-        default_value='true',
-        description='Specifying whether or not to enable angle_compensate of scan data'
-    )
-    
-    scan_mode_arg = DeclareLaunchArgument(
-        'scan_mode',
-        default_value='Standard',
-        description='Specifying scan mode of lidar'
-    )
-    
-    # 获取原始rplidar launch文件路径
-    rplidar_launch_path = PathJoinSubstitution([
-        FindPackageShare('rplidar_ros'),
-        'launch',
-        'rplidar_a1_launch.py'
-    ])
-    
-    # 创建雷达节点（直接创建而不是包含launch）
-    rplidar_node = Node(
-        package='rplidar_ros',
-        executable='rplidar_node',
-        name='rplidar_node',
-        namespace=LaunchConfiguration('robot_name'),  # 添加命名空间
-        parameters=[{
-            'channel_type': LaunchConfiguration('channel_type'),
-            'serial_port': LaunchConfiguration('serial_port'),
-            'serial_baudrate': LaunchConfiguration('serial_baudrate'),
-            'frame_id': LaunchConfiguration('laser_frame'),
-            'inverted': LaunchConfiguration('inverted'),
-            'angle_compensate': LaunchConfiguration('angle_compensate'),
-            'scan_mode': LaunchConfiguration('scan_mode')
-        }],
-        output='screen',
-        # 自动添加前缀到所有话题
-        remappings=[
-            ('scan', 'scan')  # 话题变为 /<robot_name>/scan
+    """
+    @brief 生成激光雷达 launch 描述对象。
+
+    @return LaunchDescription 对象。
+    """
+
+    return LaunchDescription(
+        [
+            # 机器人名称。
+            DeclareLaunchArgument(
+                "robot_name",
+                default_value="robmini",
+            ),
+
+            # ROS 命名空间。
+            DeclareLaunchArgument(
+                "namespace",
+                default_value="",
+            ),
+
+            # TF 前缀。
+            DeclareLaunchArgument(
+                "tf_prefix",
+                default_value="",
+            ),
+
+            # 激光雷达坐标系名称。
+            # 若为空，则默认生成 <tf_prefix>/laser。
+            DeclareLaunchArgument(
+                "laser_frame",
+                default_value="",
+            ),
+
+            # 雷达通信方式。
+            DeclareLaunchArgument(
+                "channel_type",
+                default_value="serial",
+            ),
+
+            # 雷达串口设备路径。
+            DeclareLaunchArgument(
+                "serial_port",
+                default_value="/dev/ttyRadar",
+            ),
+
+            # 雷达串口波特率。
+            DeclareLaunchArgument(
+                "serial_baudrate",
+                default_value="115200",
+            ),
+
+            # 是否反转雷达扫描方向。
+            DeclareLaunchArgument(
+                "inverted",
+                default_value="false",
+            ),
+
+            # 是否启用角度补偿。
+            DeclareLaunchArgument(
+                "angle_compensate",
+                default_value="true",
+            ),
+
+            # 雷达扫描模式。
+            DeclareLaunchArgument(
+                "scan_mode",
+                default_value="Standard",
+            ),
+
+            # 运行时读取参数并创建节点。
+            OpaqueFunction(function=_prepare_node),
         ]
     )
-
-    return LaunchDescription([
-        # 新参数
-        robot_name_arg,
-        laser_frame_arg,
-        
-        # 原始参数声明
-        channel_type_arg,
-        serial_port_arg,
-        serial_baudrate_arg,
-        inverted_arg,
-        angle_compensate_arg,
-        scan_mode_arg,
-        
-        # 直接启动雷达节点
-        rplidar_node
-    ])
