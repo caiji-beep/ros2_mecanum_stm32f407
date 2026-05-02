@@ -405,6 +405,11 @@
               <FileType>5</FileType>
               <FilePath>.\freertos_demo.h</FilePath>
             </File>
+            <File>
+              <FileName>main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\main.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -959,6 +964,36 @@
               <FileName>Uart.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\MyTasks\Uart.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>BSP</GroupName>
+          <Files>
+            <File>
+              <FileName>soft_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\soft_i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>soft_i2c.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\soft_i2c.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Drivers</GroupName>
+          <Files>
+            <File>
+              <FileName>icm20948.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\icm20948.c</FilePath>
+            </File>
+            <File>
+              <FileName>icm20948.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Drivers\icm20948.h</FilePath>
             </File>
           </Files>
         </Group>
