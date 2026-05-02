@@ -153,4 +153,5 @@ ros2 launch robmini_description real_bringup.launch.py
 2.新建远程终端
 3.ros2 run rviz2 rviz2 -d /home/lsz/robotmini_ws/install/robmini_navigation/share/robmini_navigation/rviz/nav2.rviz --ros-args -r __ns:=/robmini -p use_sim_time:=false
 4.蓝牙将小车改为nav模式
+202605021927
 
