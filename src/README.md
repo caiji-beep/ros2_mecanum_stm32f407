@@ -1,7 +1,8 @@
 # 注意事项
 仿真模式由于物理属性问题，左平移/右平移很难做到，故nav2的yaml关掉了y方向的速度。
 然后引入了planer,当前仿真兼容planer和ros2_control，注意在使用ros2_control时，必须关掉nav2的yaml的y。
-
+仿真时robmini.urdf.xacro  <xacro:property name="mesh_dir" value="file://$(find robmini_description)/meshes" />
+实车且rviz2远程启动时<xacro:property name="mesh_dir" value="package://robmini_description/meshes" />
 
 # 快速检查
 
