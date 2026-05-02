@@ -2,13 +2,13 @@
 仿真模式由于物理属性问题，左平移/右平移很难做到，故nav2的yaml关掉了y方向的速度。
 然后引入了planer,当前仿真兼容planer和ros2_control，注意在使用ros2_control时，必须关掉nav2的yaml的y。
 仿真时robmini.urdf.xacro  <xacro:property name="mesh_dir" value="file://$(find robmini_description)/meshes" />
-实车且rviz2远程启动时<xacro:property name="mesh_dir" value="package://robmini_description/meshes" />
+实车且rviz2远程启动(本地启动可与仿真一致)时<xacro:property name="mesh_dir" value="package://robmini_description/meshes" />
 
 # 快速检查
 
 ## 真实机器人启动
 
-默认单机器人：
+默认单机器人导航：
 
 ```bash
 ros2 launch robmini_navigation demo_real_navigation.launch.py
@@ -21,34 +21,6 @@ ros2 launch robmini_navigation demo_real_navigation.launch.py \
   namespace:=robmini tf_prefix:=robmini
 ```
 
-## Gazebo 仿真启动
-
-仿真入口和真机入口不同。仿真不会使用 `/dev/ttySTM32`，而是通过
-`gazebo_ros2_control/GazeboSystem` 让 Gazebo 接管四个轮子的 velocity interface：
-
-```bash
-ros2 launch robmini_navigation demo_sim_navigation.launch.py
-```
-
-仿真建图过程（默认使用planer）:
-
-```bash
-ros2 launch robmini_description sim_02_launch.py 
-```
-
-```bash
-ros2 launch robmini_navigation bringup_mapping_sim.launch.py
-```
-
-```bash
-ros2 launch robmini_navigation teleop.launch.py 
-```
-
-```bash
-ros2 run nav2_map_server map_saver_cli -f \
-/home/lsz/robmini_ws/src/robmini_navigation/maps/room_mini/my_slam_map \
---ros-args -r map:=/robmini/map
-```
 实车建图：
 
 ```bash
@@ -64,6 +36,33 @@ ros2 run nav2_map_server map_saver_cli -f \
 /home/lsz/robotmini_ws/src/robmini_navigation/maps/room_mini/my_slam_map \
 --ros-args -r map:=/robmini/map
 ```
+
+
+## Gazebo 仿真启动
+
+仿真入口和真机入口不同。仿真不会使用 `/dev/ttySTM32`，而是通过
+`gazebo_ros2_control/GazeboSystem` 让 Gazebo 接管四个轮子的 velocity interface：
+仿真导航
+```bash
+ros2 launch robmini_navigation demo_sim_navigation.launch.py
+```
+
+仿真建图过程（默认使用planer）:
+
+```bash
+ros2 launch robmini_navigation demo_real_mapping.launch.py
+```
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py 
+```
+
+```bash
+ros2 run nav2_map_server map_saver_cli -f \
+/home/lsz/robotmini_ws/src/robmini_navigation/maps/room_mini/my_slam_map \
+--ros-args -r map:=/robmini/map
+```
+
 
 
 仿真链路大致是：

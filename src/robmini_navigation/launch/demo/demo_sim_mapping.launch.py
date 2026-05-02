@@ -34,6 +34,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     tf_prefix = LaunchConfiguration("tf_prefix")
     map_frame = LaunchConfiguration("map_frame")
+    sim_drive_mode = LaunchConfiguration("sim_drive_mode")
 
     pkg_description = get_package_share_directory("robmini_description")
     pkg_navigation = get_package_share_directory("robmini_navigation")
