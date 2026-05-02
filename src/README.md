@@ -31,6 +31,7 @@ ros2 launch robmini_navigation demo_sim_navigation.launch.py
 ```
 
 仿真建图过程（默认使用planer）:
+
 ```bash
 ros2 launch robmini_description sim_02_launch.py 
 ```
@@ -38,21 +39,32 @@ ros2 launch robmini_description sim_02_launch.py
 ```bash
 ros2 launch robmini_navigation bringup_mapping_sim.launch.py
 ```
-```bash
-ros2 launch robmini_navigation bringup_mapping_sim.launch.py
-```
+
 ```bash
 ros2 launch robmini_navigation teleop.launch.py 
 ```
 
 ```bash
-ros2 launch robmini_navigation teleop.launch.py 
-```
-```bash
 ros2 run nav2_map_server map_saver_cli -f \
-/home/lsz/ros2_mecanum_stm32f407/src/robmini_navigation/maps/room_mini/my_slam_map \
+/home/lsz/robmini_ws/src/robmini_navigation/maps/room_mini/my_slam_map \
 --ros-args -r map:=/robmini/map
 ```
+实车建图：
+
+```bash
+ros2 launch robmini_navigation demo_real_mapping.launch.py
+```
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py 
+```
+
+```bash
+ros2 run nav2_map_server map_saver_cli -f \
+/home/lsz/robotmini_ws/src/robmini_navigation/maps/room_mini/my_slam_map \
+--ros-args -r map:=/robmini/map
+```
+
 
 仿真链路大致是：
 

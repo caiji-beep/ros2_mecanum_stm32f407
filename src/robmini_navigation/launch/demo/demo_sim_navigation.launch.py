@@ -16,6 +16,8 @@ def generate_launch_description():
     map_frame = LaunchConfiguration("map_frame")
     use_sim_time = LaunchConfiguration("use_sim_time")
     sim_drive_mode = LaunchConfiguration("sim_drive_mode")
+    use_rviz = LaunchConfiguration("use_rviz")
+    map_file = LaunchConfiguration("map_file")
 
     pkg_description = get_package_share_directory("robmini_description")
     pkg_navigation = get_package_share_directory("robmini_navigation")
@@ -43,8 +45,8 @@ def generate_launch_description():
             "tf_prefix": tf_prefix,
             "map_frame": map_frame,
             "use_sim_time": use_sim_time,
-            "use_rviz": "true",
-            "map_file": "room_mini/room_mini.yaml"
+            "use_rviz": use_rviz,
+            "map_file": map_file
         }.items(),
     )
 
@@ -54,6 +56,8 @@ def generate_launch_description():
         DeclareLaunchArgument("tf_prefix", default_value=""),
         DeclareLaunchArgument("map_frame", default_value=""),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
+        DeclareLaunchArgument("use_rviz", default_value="true"),
+        DeclareLaunchArgument("map_file",default_value="room_mini/room_mini.yaml"),
         DeclareLaunchArgument("sim_drive_mode", default_value="planar", choices=["ros2_control", "planar"]),
         simulation_launch,
         TimerAction(period=12.0, actions=[nav_bringup_launch]),
