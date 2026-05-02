@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\USER;..\FWLIB\inc;..\HARDWARE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\SYSTEM;..\FreeRTOS;..\FreeRTOS\include;..\FreeRTOS\port;..\FreeRTOS\src</IncludePath>
+              <IncludePath>..\CORE;..\USER;..\FWLIB\inc;..\HARDWARE;..\SYSTEM;..\FreeRTOS;..\FreeRTOS\include;..\FreeRTOS\port;..\FreeRTOS\src;..\MyTasks;..\BSP;..\Drivers</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -601,24 +601,34 @@
           <GroupName>SYSTEM</GroupName>
           <Files>
             <File>
-              <FileName>delay.c</FileName>
+              <FileName>retarget_uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\SYSTEM\delay\delay.c</FilePath>
+              <FilePath>..\SYSTEM\retarget_uart.c</FilePath>
             </File>
             <File>
-              <FileName>delay.h</FileName>
+              <FileName>retarget_uart.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\SYSTEM\delay\delay.h</FilePath>
+              <FilePath>..\SYSTEM\retarget_uart.h</FilePath>
             </File>
             <File>
-              <FileName>sys.c</FileName>
+              <FileName>robot_state.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\SYSTEM\sys\sys.c</FilePath>
+              <FilePath>..\SYSTEM\robot_state.c</FilePath>
             </File>
             <File>
-              <FileName>sys.h</FileName>
+              <FileName>robot_state.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\SYSTEM\sys\sys.h</FilePath>
+              <FilePath>..\SYSTEM\robot_state.h</FilePath>
+            </File>
+            <File>
+              <FileName>SPL_Delay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SYSTEM\SPL_Delay.c</FilePath>
+            </File>
+            <File>
+              <FileName>SPL_Delay.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\SYSTEM\SPL_Delay.h</FilePath>
             </File>
             <File>
               <FileName>Timer.c</FileName>
@@ -631,25 +641,60 @@
               <FilePath>..\SYSTEM\Timer.h</FilePath>
             </File>
             <File>
-              <FileName>SpeedCtrl.c</FileName>
+              <FileName>watchdog.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\SYSTEM\SpeedCtrl.c</FilePath>
+              <FilePath>..\SYSTEM\watchdog.c</FilePath>
             </File>
             <File>
-              <FileName>SpeedCtrl.h</FileName>
+              <FileName>watchdog.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\SYSTEM\SpeedCtrl.h</FilePath>
-            </File>
-            <File>
-              <FileName>global.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\SYSTEM\global.h</FilePath>
+              <FilePath>..\SYSTEM\watchdog.h</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
           <GroupName>HARDWARE</GroupName>
           <Files>
+            <File>
+              <FileName>buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\buzzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\buzzer.h</FilePath>
+            </File>
+            <File>
+              <FileName>Can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\Can.c</FilePath>
+            </File>
+            <File>
+              <FileName>Can.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\Can.h</FilePath>
+            </File>
+            <File>
+              <FileName>Encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\Encoder.c</FilePath>
+            </File>
+            <File>
+              <FileName>Encoder.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\Encoder.h</FilePath>
+            </File>
+            <File>
+              <FileName>IMU_Icm20948.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IMU_Icm20948.c</FilePath>
+            </File>
+            <File>
+              <FileName>IMU_Icm20948.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\IMU_Icm20948.h</FilePath>
+            </File>
             <File>
               <FileName>Key.c</FileName>
               <FileType>1</FileType>
@@ -659,6 +704,16 @@
               <FileName>Key.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\HARDWARE\Key.h</FilePath>
+            </File>
+            <File>
+              <FileName>LED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\LED.c</FilePath>
+            </File>
+            <File>
+              <FileName>LED.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\LED.h</FilePath>
             </File>
             <File>
               <FileName>OLED.c</FileName>
@@ -686,39 +741,14 @@
               <FilePath>..\HARDWARE\PWM.h</FilePath>
             </File>
             <File>
-              <FileName>Serial.c</FileName>
+              <FileName>Usartx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\HARDWARE\Serial.c</FilePath>
+              <FilePath>..\HARDWARE\Usartx.c</FilePath>
             </File>
             <File>
-              <FileName>Serial.h</FileName>
+              <FileName>Usartx.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\HARDWARE\Serial.h</FilePath>
-            </File>
-            <File>
-              <FileName>Encoder.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\Encoder.c</FilePath>
-            </File>
-            <File>
-              <FileName>Encoder.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\HARDWARE\Encoder.h</FilePath>
-            </File>
-            <File>
-              <FileName>Serial3.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\Serial3.c</FilePath>
-            </File>
-            <File>
-              <FileName>Serial3.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\HARDWARE\Serial3.h</FilePath>
-            </File>
-            <File>
-              <FileName>LED.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\LED.c</FilePath>
+              <FilePath>..\HARDWARE\Usartx.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -874,6 +904,61 @@
               <FileName>timers.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\FreeRTOS\src\timers.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>MyTasks</GroupName>
+          <Files>
+            <File>
+              <FileName>CTRL.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\CTRL.c</FilePath>
+            </File>
+            <File>
+              <FileName>CTRL.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\CTRL.h</FilePath>
+            </File>
+            <File>
+              <FileName>Display.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\Display.c</FilePath>
+            </File>
+            <File>
+              <FileName>Display.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\Display.h</FilePath>
+            </File>
+            <File>
+              <FileName>IMU.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\IMU.c</FilePath>
+            </File>
+            <File>
+              <FileName>IMU.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\IMU.h</FilePath>
+            </File>
+            <File>
+              <FileName>Telemetry.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\Telemetry.c</FilePath>
+            </File>
+            <File>
+              <FileName>Telemetry.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\Telemetry.h</FilePath>
+            </File>
+            <File>
+              <FileName>Uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\Uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>Uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\Uart.h</FilePath>
             </File>
           </Files>
         </Group>
