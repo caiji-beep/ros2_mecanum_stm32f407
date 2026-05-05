@@ -177,4 +177,62 @@ IMU 默认发布到：
 /robmini/imu/data_raw
 ```
 
+### 开机启动脚本
+sudo nano /usr/local/bin/can0_up.sh
+
+写入：
+
+#!/bin/bash
+
+sleep 5
+
+modprobe can
+modprobe can_raw
+modprobe can_dev
+modprobe peak_usb 2>/dev/null || true
+
+for i in $(seq 1 15); do
+    if ip link show can0 >/dev/null 2>&1; then
+        ip link set can0 down 2>/dev/null || true
+        ip link set can0 type can bitrate 125000 restart-ms 100
+        ip link set can0 up
+        ip -details -statistics link show can0
+        exit 0
+    fi
+    sleep 1
+done
+
+echo "can0 not found"
+exit 1
+
+授权：
+
+sudo chmod +x /usr/local/bin/can0_up.sh
+
+创建服务：
+
+sudo nano /etc/systemd/system/can0.service
+
+写入：
+
+[Unit]
+Description=Bring up CAN0 interface
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/can0_up.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+启用：
+
+sudo systemctl daemon-reload
+sudo systemctl enable can0.service
+sudo systemctl start can0.service
+
+以后树莓派开机后，can0 会自动 up。
 
