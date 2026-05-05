@@ -16,7 +16,6 @@
 #include "watchdog.h"
 #include "buzzer.h"
 #include "Usartx.h"
-#include "IMU_Icm20948.h"
 #include "Can.h"
 #include "Key.h"
 #include "LED.h"
@@ -57,7 +56,6 @@ void Telemetry_Task(void *pvParameters);
 TaskHandle_t gIMUTask_Handle;
 void IMU_Task(void *pvParameters);
 
-
 /*队列句柄*/
 QueueHandle_t gUart2RxQ = NULL;
 QueueHandle_t gUart3RxQ = NULL;
@@ -68,11 +66,12 @@ QueueSetHandle_t gqueueset_handle;
 /*OLED句柄*/
 QueueHandle_t gsem_OLED_handle;
 
-
-extern ICM20948_RawData_t IMU_data;
-extern ICM20948_Offset_t IMU_offset;
-extern ICM20948_ProcessedData_t IMU_processed;
 uint8_t g_key1_pressed = 0;
+
+static Soft_I2C_Bus oled_i2c_bus = {
+    .port = GPIOD,
+    .scl_pin = GPIO_Pin_14,
+    .sda_pin = GPIO_Pin_13};
 
 static void BoardInit(void)
 {
@@ -82,7 +81,6 @@ static void BoardInit(void)
     Key_Init();
     TIM6_Init();
     TIM7_Init();
-    
 
     if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST))
     {
@@ -95,7 +93,7 @@ static void BoardInit(void)
         // 正常上电复位
         Buzzer_Beep(500);
     }
-    OLED_Init();
+    OLED_Init(&oled_i2c_bus);
 
     /* PWM定时器（Serial_Init 必须在定时器后） */
     TIM1_PWM_Init(16800 - 1, 1 - 1);
@@ -103,22 +101,19 @@ static void BoardInit(void)
     TIM10_PWM_Init(16800 - 1, 1 - 1);
     TIM11_PWM_Init(16800 - 1, 1 - 1);
 
-    Serial2_Init();  // 串口2
+    Serial2_Init(); // 串口2
     Serial3_Init(); // 串口3
     CAN1_Init();
 
-    
-    
     Encoder_Init();
-    
+
     Encoder_SetDir(ENC_A, +1);
     Encoder_SetDir(ENC_B, -1);
     Encoder_SetDir(ENC_C, -1);
     Encoder_SetDir(ENC_D, +1);
-    
+
     SC_Init(); // 速度环参数/状态
-    ICM20948_Init();//放在Encoder_Init之前初始化，会导致 D轮抽搐一下
-    ICM20948_Calibrate(&IMU_offset, 200);  // IMU静止标定200次
+    // ICM20948_Init();//放在Encoder_Init之前初始化，会导致 D轮抽搐一下
     OLED_Clear();
     IWDG_Init(1000); // 看门狗初始化，1秒
 }
@@ -210,7 +205,7 @@ void EXTI0_IRQHandler(void)
         // 简单防抖：50ms 内忽略后续中断
         if ((now - last_tick) > pdMS_TO_TICKS(50))
         {
-            g_key1_pressed = 1;  // 标记“有一次按键”
+            g_key1_pressed = 1; // 标记“有一次按键”
             last_tick = now;
         }
 
@@ -220,24 +215,24 @@ void EXTI0_IRQHandler(void)
 
 /**
  * @brief 栈溢出钩子函数
- * 
- * @param xTask 
- * @param pcTaskName 
+ *
+ * @param xTask
+ * @param pcTaskName
  */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     (void)xTask;
     (void)pcTaskName;
-    taskDISABLE_INTERRUPTS();//全局关闭中断
+    taskDISABLE_INTERRUPTS(); // 全局关闭中断
     Set_Pwm(0, 0, 0, 0);
-    for (;;)//让程序彻底卡死在这里等待复位
+    for (;;) // 让程序彻底卡死在这里等待复位
     {
     }
 }
 
 /**
  * @brief 内存分配失败钩子函数
- * 
+ *
  */
 void vApplicationMallocFailedHook(void)
 {
@@ -247,4 +242,3 @@ void vApplicationMallocFailedHook(void)
     {
     }
 }
-

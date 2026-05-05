@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\USER;..\FWLIB\inc;..\HARDWARE;..\SYSTEM;..\FreeRTOS;..\FreeRTOS\include;..\FreeRTOS\port;..\FreeRTOS\src;..\MyTasks;..\BSP;..\Drivers</IncludePath>
+              <IncludePath>..\CORE;..\USER;..\FWLIB\inc;..\HARDWARE;..\SYSTEM;..\FreeRTOS;..\FreeRTOS\include;..\FreeRTOS\port;..\FreeRTOS\src;..\MyTasks;..\BSP;..\Drivers;..\Algorithm</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -691,16 +691,6 @@
               <FilePath>..\HARDWARE\Encoder.h</FilePath>
             </File>
             <File>
-              <FileName>IMU_Icm20948.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\IMU_Icm20948.c</FilePath>
-            </File>
-            <File>
-              <FileName>IMU_Icm20948.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\HARDWARE\IMU_Icm20948.h</FilePath>
-            </File>
-            <File>
               <FileName>Key.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\Key.c</FilePath>
@@ -719,21 +709,6 @@
               <FileName>LED.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\HARDWARE\LED.h</FilePath>
-            </File>
-            <File>
-              <FileName>OLED.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\OLED.c</FilePath>
-            </File>
-            <File>
-              <FileName>OLED.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\HARDWARE\OLED.h</FilePath>
-            </File>
-            <File>
-              <FileName>OLED_Font.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\HARDWARE\OLED_Font.h</FilePath>
             </File>
             <File>
               <FileName>PWM.c</FileName>
@@ -971,14 +946,34 @@
           <GroupName>BSP</GroupName>
           <Files>
             <File>
-              <FileName>soft_i2c.c</FileName>
+              <FileName>bsp_soft_i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\BSP\soft_i2c.c</FilePath>
+              <FilePath>..\BSP\bsp_soft_i2c.c</FilePath>
             </File>
             <File>
-              <FileName>soft_i2c.h</FileName>
+              <FileName>bsp_soft_i2c.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\BSP\soft_i2c.h</FilePath>
+              <FilePath>..\BSP\bsp_soft_i2c.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_exti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\bsp_exti.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_exti.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\bsp_exti.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_tick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\bsp_tick.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_tick.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\bsp_tick.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -994,6 +989,36 @@
               <FileName>icm20948.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Drivers\icm20948.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\OLED.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Drivers\OLED.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_Font.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Drivers\OLED_Font.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Algorithm</GroupName>
+          <Files>
+            <File>
+              <FileName>imu_fusion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Algorithm\imu_fusion.c</FilePath>
+            </File>
+            <File>
+              <FileName>imu_fusion.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Algorithm\imu_fusion.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -3,8 +3,7 @@ name: mecanum
 type: ARM
 deviceName: null
 packDir: .pack/Keil/STM32F4xx_DFP.1.0.8
-srcDirs:
-  - ../MyTasks
+srcDirs: []
 virtualFolder:
   name: <virtual_root>
   files:
@@ -78,9 +77,6 @@ virtualFolder:
       files:
         - path: ../HARDWARE/Key.c
         - path: ../HARDWARE/Key.h
-        - path: ../HARDWARE/OLED.c
-        - path: ../HARDWARE/OLED.h
-        - path: ../HARDWARE/OLED_Font.h
         - path: ../HARDWARE/PWM.c
         - path: ../HARDWARE/PWM.h
         - path: ../HARDWARE/Encoder.c
@@ -90,8 +86,6 @@ virtualFolder:
         - path: ../HARDWARE/buzzer.h
         - path: ../HARDWARE/Usartx.c
         - path: ../HARDWARE/Usartx.h
-        - path: ../HARDWARE/IMU_Icm20948.c
-        - path: ../HARDWARE/IMU_Icm20948.h
         - path: ../HARDWARE/Can.c
         - path: ../HARDWARE/Can.h
         - path: ../HARDWARE/LED.h
@@ -136,6 +130,41 @@ virtualFolder:
             - path: ../FreeRTOS/src/tasks.c
             - path: ../FreeRTOS/src/timers.c
           folders: []
+    - name: BSP
+      files:
+        - path: ../BSP/bsp_soft_i2c.c
+        - path: ../BSP/bsp_soft_i2c.h
+        - path: ../BSP/bsp_exti.c
+        - path: ../BSP/bsp_exti.h
+        - path: ../BSP/bsp_tick.c
+        - path: ../BSP/bsp_tick.h
+      folders: []
+    - name: Drivers
+      files:
+        - path: ../Drivers/icm20948.c
+        - path: ../Drivers/icm20948.h
+        - path: ../Drivers/OLED.c
+        - path: ../Drivers/OLED.h
+        - path: ../Drivers/OLED_Font.h
+      folders: []
+    - name: MyTasks
+      files:
+        - path: ../MyTasks/CTRL.c
+        - path: ../MyTasks/CTRL.h
+        - path: ../MyTasks/Display.c
+        - path: ../MyTasks/Display.h
+        - path: ../MyTasks/IMU.c
+        - path: ../MyTasks/IMU.h
+        - path: ../MyTasks/Telemetry.c
+        - path: ../MyTasks/Telemetry.h
+        - path: ../MyTasks/Uart.c
+        - path: ../MyTasks/Uart.h
+      folders: []
+    - name: Algorithm
+      files:
+        - path: ../Algorithm/imu_fusion.c
+        - path: ../Algorithm/imu_fusion.h
+      folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -152,9 +181,6 @@ targets:
         - ../USER
         - ../FWLIB/inc
         - ../HARDWARE
-        - ../SYSTEM/delay
-        - ../SYSTEM/sys
-        - ../SYSTEM/usart
         - ../SYSTEM
         - ../FreeRTOS
         - ../FreeRTOS/include
@@ -163,6 +189,9 @@ targets:
         - .cmsis/include
         - ../USER/RTE/_mecanum
         - ../MyTasks
+        - ../BSP
+        - ../Drivers
+        - ../Algorithm
       libList: []
     excludeList: []
     settings:

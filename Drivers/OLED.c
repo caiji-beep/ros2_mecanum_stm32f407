@@ -1,90 +1,15 @@
+#include <stddef.h>
 #include "stm32f4xx.h"
 #include "OLED_Font.h"
 #include "SPL_Delay.h"
+#include "bsp_soft_i2c.h"
 
-/*引脚配置*/
-#define OLED_W_SCL(x)		GPIO_WriteBit(GPIOD, GPIO_Pin_14, (BitAction)(x))
-#define OLED_W_SDA(x)		GPIO_WriteBit(GPIOD, GPIO_Pin_13, (BitAction)(x))
 
-/*引脚初始化*/
-void OLED_I2C_Init(void)
-{
-    /* F4 的 GPIOD 在 AHB1 总线 */
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+/* SSD1306 设备地址（7-bit） */
+#define OLED_ADDR   0x3C
 
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_StructInit(&GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_13 | GPIO_Pin_14;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;   /* 普通输出 */
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;   
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;    /* 内部上拉；若板上已接 4.7 kΩ 外拉，可用 NOPULL */
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	
-
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-    /* 总线空闲电平（高） */
-    OLED_W_SCL(1);
-    OLED_W_SDA(1);
-}
-
-/**
-  * @brief  I2C开始
-  * @param  无
-  * @retval 无
-  */
-void OLED_I2C_Start(void)
-{
-	OLED_W_SDA(1);
-	SPL_Delay_us(1);
-	OLED_W_SCL(1);
-	SPL_Delay_us(1);
-	OLED_W_SDA(0);
-	SPL_Delay_us(1);
-	OLED_W_SCL(0);
-	SPL_Delay_us(1);
-}
-
-/**
-  * @brief  I2C停止
-  * @param  无
-  * @retval 无
-  */
-void OLED_I2C_Stop(void)
-{
-	OLED_W_SDA(0);
-	SPL_Delay_us(1);
-	OLED_W_SCL(1);
-	SPL_Delay_us(1);
-	OLED_W_SDA(1);
-	SPL_Delay_us(1);
-}
-
-/**
-  * @brief  I2C发送一个字节
-  * @param  Byte 要发送的一个字节
-  * @retval 无
-  */
-void OLED_I2C_SendByte(uint8_t Byte)
-{
-	uint8_t i;
-	for (i = 0; i < 8; i++)
-	{
-		OLED_W_SDA(!!(Byte & (0x80 >> i)));
-		SPL_Delay_us(1);
-		OLED_W_SCL(1);
-		SPL_Delay_us(1);
-		OLED_W_SCL(0);
-		SPL_Delay_us(1);
-	}
-	OLED_W_SCL(1);	//额外的一个时钟，不处理应答信号
-	SPL_Delay_us(1);
-	OLED_W_SCL(0);
-	SPL_Delay_us(1);
-}
+Soft_I2C_Bus *oled_bus = NULL; // OLED 使用的 I2C 总线句柄，初始化后会指向外部传入的总线
 
 /**
   * @brief  OLED写命令
@@ -93,11 +18,9 @@ void OLED_I2C_SendByte(uint8_t Byte)
   */
 void OLED_WriteCommand(uint8_t Command)
 {
-	OLED_I2C_Start();
-	OLED_I2C_SendByte(0x78);		//从机地址
-	OLED_I2C_SendByte(0x00);		//写命令
-	OLED_I2C_SendByte(Command); 
-	OLED_I2C_Stop();
+
+	uint8_t buf[2] = { 0x00, Command };     // 0x00 = 控制字节：命令
+    Soft_I2C_WriteBytes(oled_bus, OLED_ADDR, buf, 2);
 }
 
 /**
@@ -107,11 +30,9 @@ void OLED_WriteCommand(uint8_t Command)
   */
 void OLED_WriteData(uint8_t Data)
 {
-	OLED_I2C_Start();
-	OLED_I2C_SendByte(0x78);		//从机地址
-	OLED_I2C_SendByte(0x40);		//写数据
-	OLED_I2C_SendByte(Data);
-	OLED_I2C_Stop();
+	uint8_t buf[2] = { 0x40, Data };     // 0x40 = 控制字节：数据
+    Soft_I2C_WriteBytes(oled_bus, OLED_ADDR, buf, 2);
+
 }
 
 /**
@@ -289,16 +210,22 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
   * @param  无
   * @retval 无
   */
-void OLED_Init(void)
+void OLED_Init(Soft_I2C_Bus *bus)
 {
 	uint32_t i, j;
+
+	if (bus == NULL) 
+		return;
+
+    oled_bus = bus;				//保存I2C总线句柄
 	
 	for (i = 0; i < 1000; i++)			//上电延时
 	{
 		for (j = 0; j < 1000; j++);
 	}
 	
-	OLED_I2C_Init();			//端口初始化
+	Soft_I2C_Init(oled_bus);			//端口初始化
+	
 	
 	OLED_WriteCommand(0xAE);	//关闭显示
 	

@@ -29,7 +29,12 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
- 
+#include "stm32f4xx_exti.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "freertos_demo.h"
+
+extern TaskHandle_t gIMUTask_Handle;
 
 /** @addtogroup Template_Project
   * @{
@@ -166,3 +171,19 @@ void DebugMon_Handler(void)
 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+
+void EXTI15_10_IRQHandler(void)
+{
+    BaseType_t hpw = pdFALSE;
+
+    if (EXTI_GetITStatus(EXTI_Line12) != RESET)
+    {
+        EXTI_ClearITPendingBit(EXTI_Line12);
+        if (gIMUTask_Handle != NULL)
+        {
+            vTaskNotifyGiveFromISR(gIMUTask_Handle, &hpw);
+            portYIELD_FROM_ISR(hpw);
+        }
+    }
+}

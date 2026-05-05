@@ -2,7 +2,7 @@
  * @Author: caiji-beep 2978115384@qq.com
  * @Date: 2025-12-01 19:02:17
  * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2025-12-04 18:10:54
+ * @LastEditTime: 2026-05-05 16:43:23
  * @FilePath: \EIDEe:\STM32_Documents\PROJECT\ros2_mecanum\MyTasks\Display.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -12,15 +12,12 @@
 #include "OLED.h"
 #include "Encoder.h"
 #include "semphr.h"
-#include "IMU_Icm20948.h"
 #include "LED.h"
+#include "IMU.h"
 
 extern QueueHandle_t gsem_OLED_handle;
-extern ICM20948_ProcessedData_t IMU_processed;
 extern  uint8_t g_key1_pressed;
 
-extern int g_i2c_last_error;  // 最近一次错误的步骤编号
-extern int g_i2c_error_count;
 static uint8_t oled_page = 0;
 
 static void OLED_Show_mps2(uint8_t line, uint8_t col, float v_mps)
@@ -56,13 +53,11 @@ static void OLED_Show_mps2(uint8_t line, uint8_t col, float v_mps)
 
 static void OLED_ShowSpeeds_mps(void)
 {
-    // OLED_ShowString(1, 1, "A:");
-    // OLED_Show_mps2(1, 3, Encoder_Speed_mps(ENC_A));
+    OLED_ShowString(1, 1, "A:");
+    OLED_Show_mps2(1, 3, Encoder_Speed_mps(ENC_A));
 
-    // OLED_ShowString(2, 1, "B:");
-    // OLED_Show_mps2(2, 3, Encoder_Speed_mps(ENC_B));
-    OLED_ShowNum(1,1,g_i2c_last_error,4);
-    OLED_ShowNum(2,1,g_i2c_error_count,4);
+    OLED_ShowString(2, 1, "B:");
+    OLED_Show_mps2(2, 3, Encoder_Speed_mps(ENC_B));
 
     OLED_ShowString(3, 1, "C:");
     OLED_Show_mps2(3, 3, Encoder_Speed_mps(ENC_C));
@@ -70,11 +65,8 @@ static void OLED_ShowSpeeds_mps(void)
     OLED_ShowString(4, 1, "D:");
     OLED_Show_mps2(4, 3, Encoder_Speed_mps(ENC_D));
 }
-static void OLED_ShowAngleDeg(uint8_t line, uint8_t col, float angle_rad)
+static void OLED_ShowAngleDeg(uint8_t line, uint8_t col, float deg)
 {
-    const float RAD2DEG = 57.2957795f;
-    float deg = angle_rad * RAD2DEG;
-
     int sign = (deg >= 0.0f) ? 1 : -1;
     float av = deg * sign;
 
@@ -96,29 +88,38 @@ static void OLED_ShowAngleDeg(uint8_t line, uint8_t col, float angle_rad)
 /* 页面1：IMU 姿态（roll/pitch/yaw） */
 static void OLED_ShowIMUPage(void)
 {
-    ICM20948_ProcessedData_t imu;
+    IMU_State_t imu_data_copy;
 
     // 复制一份，防止 IMU_Task 正在更新
-    taskENTER_CRITICAL();
-    imu = IMU_processed;
-    taskEXIT_CRITICAL();
+    if (!IMU_GetSnapshot(&imu_data_copy))
+    {
+        return;
+    }
+
+    if (!imu_data_copy.data_valid)
+    {
+        OLED_ShowString(1, 1, "IMU fault");
+        OLED_ShowNum(2, 1, imu_data_copy.last_error, 3);
+        OLED_ShowNum(3, 1, imu_data_copy.read_fail_count, 5);
+        return;
+    }
 
     // 标题（可选）
     OLED_ShowString(1,1,"IMU:");
 
     // 第2行 Roll
     OLED_ShowString(2,1,"R:");
-    OLED_ShowAngleDeg(2,3, imu.roll);
+    OLED_ShowAngleDeg(2,3, imu_data_copy.roll_deg);
     OLED_ShowString(2,10,"deg");
 
     // 第3行 Pitch
     OLED_ShowString(3,1,"P:");
-    OLED_ShowAngleDeg(3,3, imu.pitch);
+    OLED_ShowAngleDeg(3,3, imu_data_copy.pitch_deg);
     OLED_ShowString(3,10,"deg");
 
     // 第4行 Yaw
     OLED_ShowString(4,1,"Y:");
-    OLED_ShowAngleDeg(4,3, imu.yaw);
+    OLED_ShowAngleDeg(4,3, imu_data_copy.yaw_deg);
     OLED_ShowString(4,10,"deg");
 }
 

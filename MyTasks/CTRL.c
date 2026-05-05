@@ -9,7 +9,6 @@
 #include "Telemetry.h"
 #include <math.h>
 #include "watchdog.h"
-#include "IMU_Icm20948.h"
 
 // === 低速起步补偿（静摩擦）===
 #define SC_DEADZONE_PWM (1200)      // 大死区补偿，必须 ≥ 1200
@@ -194,10 +193,6 @@ void SC_Step(void)
             s_mot[ENC_D].u_pwm);
 }
 
-// extern ICM20948_RawData_t IMU_data;
-// extern ICM20948_Offset_t IMU_offset;
-// extern ICM20948_ProcessedData_t IMU_processed;
-
 void Ctrl_Task(void *pvParameters)
 {
     // printf("Ctrl_Task started\r\n");
@@ -209,9 +204,6 @@ void Ctrl_Task(void *pvParameters)
         //    portMAX_DELAY: 一直等
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // 等待定时器通知
         Encoder_Sample(SC_Ts);                   // 10ms 编码器采样
-        // ICM20948_ReadData(&IMU_data);
-        // ICM20948_Process(&IMU_data, &IMU_offset, &IMU_processed, IMU_dt);
-
         if (g_mode == MODE_VEL)
         {
             if (g_robot_state == ROBOT_STATE_NAV && g_nav_cmd_alive == 1)
