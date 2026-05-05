@@ -108,7 +108,16 @@ ros2 launch robmini_navigation robot_bringup.launch.py \
   map_file:=room_mini/room_mini.yaml
 ```
 
-### 6.4 键盘控制
+### 6.4 仿真多机器人导航
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py
+```
+
+默认会生成 `robmini_01` 和 `robmini_02` 两台车；RViz2 直接加载包内 `multi_robots_navigation.rviz`。
+使用工具栏里的 `2D Goal Pose` 下发导航目标，默认 Topic 是 `/robmini_01/goal_pose`；要指挥 2 号车，在 Tool Properties 里把 Topic 改成 `/robmini_02/goal_pose`。
+
+### 6.5 键盘控制
 
 ```bash
 ros2 run robmini_navigation mecanum_teleop_keyboard
@@ -154,4 +163,3 @@ ros2 launch robmini_description real_bringup.launch.py
 3.ros2 run rviz2 rviz2 -d /home/lsz/robotmini_ws/install/robmini_navigation/share/robmini_navigation/rviz/nav2.rviz --ros-args -r __ns:=/robmini -p use_sim_time:=false
 4.蓝牙将小车改为nav模式
 202605021927
-

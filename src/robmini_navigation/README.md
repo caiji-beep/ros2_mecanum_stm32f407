@@ -102,6 +102,16 @@ ros2 launch robmini_navigation bringup_mapping_real.launch.py robot_name:=robmin
 ros2 launch robmini_navigation bringup_mapping_sim.launch.py robot_name:=robmini
 ```
 
+### 仿真多机器人导航
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py
+```
+
+默认启动 `robmini_01` 与 `robmini_02` 两台仿真车，每台车都有独立的 Nav2 namespace。
+RViz2 直接加载包内 `multi_robots_navigation.rviz`，使用工具栏里的 `2D Goal Pose` 下发导航目标。
+默认 Topic 是 `/robmini_01/goal_pose`；要指挥 2 号车，在 Tool Properties 里把 Topic 改成 `/robmini_02/goal_pose`。
+
 ### 真机导航
 
 ```bash
