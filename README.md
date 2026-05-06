@@ -116,6 +116,17 @@ ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py
 
 默认会生成 `robmini_01` 和 `robmini_02` 两台车；RViz2 直接加载包内 `multi_robots_navigation.rviz`。
 使用工具栏里的 `2D Goal Pose` 下发导航目标，默认 Topic 是 `/robmini_01/goal_pose`；要指挥 2 号车，在 Tool Properties 里把 Topic 改成 `/robmini_02/goal_pose`。
+这里改的是 `2D Goal Pose` 的 Topic，不是 `Publish Point` 的 `clicked_point`；`clicked_point` 只发布点坐标，不能触发 Nav2 导航。
+
+使用自定义地图时传入相对 `maps/` 的路径：
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py \
+  map_file:=merged_multi/merged_map_01.yaml
+```
+
+注意地图文件名要和实际文件一致，例如 `merged_map_01.yaml` 不是 `merger_map_01.yaml`。局部测试地图可以加载，但机器人初始位姿和目标点必须落在已建图区域；如果 AMCL 没有发布 `map -> odom`，先确认 `/robmini_01/map` 有数据，再用 RViz 的 `2D Pose Estimate` 给对应机器人重新设初始位姿。
+如果刚保存的新地图放进 `src/robmini_navigation/maps/` 后 launch 仍找不到，重新执行 `colcon build --symlink-install` 并 `source install/setup.bash`。
 
 ### 6.5 仿真多机器人共同建图
 
@@ -125,6 +136,43 @@ ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py
 
 默认启动 `robmini_01` 和 `robmini_02` 两台仿真车，每台车各自运行一套 `slam_toolbox`。
 合图节点会订阅 `/robmini_01/map` 与 `/robmini_02/map`，并发布合成后的 `/merged_map`；RViz2 会同时显示总图和每台车的局部建图结果。
+
+建图时用 teleop 分别控制两台车：
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py \
+  robot_name:=robmini_01 \
+  namespace:=robmini_01
+```
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py \
+  robot_name:=robmini_02 \
+  namespace:=robmini_02
+```
+
+共同建图时两台车会互相进入雷达范围，单车自己的 `/robmini_01/map`、`/robmini_02/map` 里可能出现对方车身留下的小黑点。当前方案不再过滤送入 `slam_toolbox` 的 `/scan`，也不再提供 `filter_peer_robots` 参数，避免滤波节点和 SLAM 在启动初期互相等待 TF；而是在 `/merged_map` 合图输出前，根据两台车走过的轨迹清理动态车身残影。这个清理只作用于融合图，不会反向改写每台车自己的 SLAM 地图。保存地图时请保存 `/merged_map`，不要保存单车 map。
+
+如 `/merged_map` 上仍有残点，可适当增大清理半径：
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py \
+  clear_robot_trail_radius:=0.45 \
+  clear_start_radius:=0.55
+```
+
+保存合并地图：
+
+```bash
+mkdir -p /home/lsz/robotmini_ws/src/robmini_navigation/maps/merged_multi
+
+ros2 run nav2_map_server map_saver_cli \
+  -t /merged_map \
+  -f /home/lsz/robotmini_ws/src/robmini_navigation/maps/merged_multi/merged_map_01 \
+  --fmt pgm
+```
+
+保存后会得到 `merged_map_01.yaml` 和 `merged_map_01.pgm`，多机导航时用 `map_file:=merged_multi/merged_map_01.yaml` 加载。
 
 如果两张子地图在 RViz2 中有偏移，可以通过 `map_origin_x_1/map_origin_y_1/map_origin_yaw_1` 和 `map_origin_x_2/map_origin_y_2/map_origin_yaw_2` 调整每台车的 `map` 到 `world` 的静态对齐关系。
 

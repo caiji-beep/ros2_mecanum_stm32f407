@@ -70,6 +70,7 @@ def _gen_temp_yaml(context, *args, **kwargs):
     map_frame = context.launch_configurations.get("map_frame", "").strip()
     if not map_frame:
         map_frame = _join_frame(tf_prefix, "map")
+    scan_topic = context.launch_configurations.get("scan_topic", "scan").strip() or "scan"
 
     pkg_share = FindPackageShare("robmini_navigation").perform(context)
     template_path = os.path.join(pkg_share, "config", "slam_template.yaml")
@@ -83,6 +84,7 @@ def _gen_temp_yaml(context, *args, **kwargs):
         "${base_frame}": _join_frame(tf_prefix, "base_link"),
         "${odom_frame}": _join_frame(tf_prefix, "odom"),
         "${map_frame}": map_frame,
+        "${scan_topic}": scan_topic,
     })
 
     fd, tmp_path = tempfile.mkstemp(prefix="robmini_slam_", suffix=".yaml")
@@ -117,6 +119,7 @@ def generate_launch_description():
         DeclareLaunchArgument("namespace", default_value=""),
         DeclareLaunchArgument("tf_prefix", default_value=""),
         DeclareLaunchArgument("map_frame", default_value=""),
+        DeclareLaunchArgument("scan_topic", default_value="scan"),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
         OpaqueFunction(function=_gen_temp_yaml),

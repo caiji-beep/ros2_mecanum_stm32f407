@@ -1,4 +1,4 @@
-# robmini_navigation（humble_real 分支）
+# robmini_navigation（humble分支）
 
 `robmini_navigation` 是 `humble_real` 分支中的导航与交互核心包，负责真机环境下的：
 
@@ -29,8 +29,11 @@ robmini_navigation/
 │   ├── robot_bringup.launch.py
 │   └── test1.launch.py
 ├── maps/
+│   ├── merged_multi/
 │   └── room_mini/
 ├── rviz/
+├── scripts/
+│   └── simple_map_merge.py
 ├── src/
 │   ├── cycle.cpp
 │   └── mecanum_teleop_keyboard.cpp
@@ -111,8 +114,47 @@ ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py
 默认启动 `robmini_01` 与 `robmini_02` 两台仿真车，每台车各自运行独立 namespace 下的 `slam_toolbox`。
 合图节点订阅 `/robmini_01/map` 和 `/robmini_02/map`，输出总图 `/merged_map`，RViz2 会直接加载包内 `multi_robots_mapping.rviz`。
 
+建图时分别开终端控制两台车：
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py \
+  robot_name:=robmini_01 \
+  namespace:=robmini_01
+```
+
+```bash
+ros2 launch robmini_navigation teleop.launch.py \
+  robot_name:=robmini_02 \
+  namespace:=robmini_02
+```
+
+共同建图默认直接使用原始 `/scan`。之前尝试过在送入 `slam_toolbox` 前过滤同伴机器人激光点，但滤波节点需要 TF，SLAM 又需要 scan 才能稳定发布 TF，容易在启动阶段形成等待关系，所以当前已经移除 `filter_peer_robots` 相关参数和滤波脚本。
+
+两车互相进入雷达范围时，单车自己的 `/robmini_01/map`、`/robmini_02/map` 里仍可能出现对方车身留下的小黑点。当前处理方式是在 `simple_map_merge.py` 发布 `/merged_map` 前，按两台车的启动区域和运动轨迹清理动态车身残影；这个清理只作用于融合图，不会反向改写每台车自己的 SLAM 地图。保存地图时请保存 `/merged_map`，不要保存单车 map。
+
+如 `/merged_map` 上仍有残点，可适当增大清理半径：
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py \
+  clear_robot_trail_radius:=0.45 \
+  clear_start_radius:=0.55
+```
+
 这套流程适合仿真验证多机器人共同建图的 topic、TF 和 RViz 展示链路；它不是后端联合优化式 SLAM，地图对齐主要由每台车的 `map` 到 `world` 静态 TF 决定。
 如需手动调整合图对齐，可传入 `map_origin_x_1/map_origin_y_1/map_origin_yaw_1` 或 `map_origin_x_2/map_origin_y_2/map_origin_yaw_2`。
+
+保存融合地图：
+
+```bash
+mkdir -p /home/lsz/robotmini_ws/src/robmini_navigation/maps/merged_multi
+
+ros2 run nav2_map_server map_saver_cli \
+  -t /merged_map \
+  -f /home/lsz/robotmini_ws/src/robmini_navigation/maps/merged_multi/merged_map_01 \
+  --fmt pgm
+```
+
+保存后会得到 `merged_map_01.yaml` 和 `merged_map_01.pgm`。如果新地图放进包内后 launch 找不到，重新执行 `colcon build --symlink-install` 并 `source install/setup.bash`。
 
 ### 仿真多机器人导航
 
@@ -123,6 +165,16 @@ ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py
 默认启动 `robmini_01` 与 `robmini_02` 两台仿真车，每台车都有独立的 Nav2 namespace。
 RViz2 直接加载包内 `multi_robots_navigation.rviz`，使用工具栏里的 `2D Goal Pose` 下发导航目标。
 默认 Topic 是 `/robmini_01/goal_pose`；要指挥 2 号车，在 Tool Properties 里把 Topic 改成 `/robmini_02/goal_pose`。
+这里改的是 `2D Goal Pose` 的 Topic，不是 `Publish Point` 的 `clicked_point`；`clicked_point` 只发布点坐标，不能触发 Nav2 导航。
+
+加载共同建图保存的融合地图：
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py \
+  map_file:=merged_multi/merged_map_01.yaml
+```
+
+地图路径相对 `robmini_navigation/maps/`。局部测试地图可以加载，但机器人初始位姿和目标点必须落在已建图区域；如果刚启动时 TF 里缺 `map -> odom`，通常是 AMCL 还没有定位成功，先确认对应 `/robmini_XX/map` 有数据，再在 RViz 用 `2D Pose Estimate` 给对应机器人重新设初始位姿。
 
 ### 真机导航
 
@@ -158,6 +210,7 @@ SLAM 配置模板，可按 `robot_name` 做字符串替换，适合命名空间�
 ### `scripts/simple_map_merge.py`
 
 仿真多机器人共同建图使用的轻量合图节点，订阅多台机器人的 `nav_msgs/OccupancyGrid`，根据 TF 转到统一坐标系后发布 `/merged_map`。
+节点会在融合图输出前清理配置的启动区域和机器人轨迹区域，用来消除两车互相进入雷达范围时留下的动态车身残影。
 
 ---
 
@@ -196,6 +249,14 @@ SLAM 配置模板，可按 `robot_name` 做字符串替换，适合命名空间�
 ### 仿真正常，实机不正常
 
 不要先怀疑算法，先确认实机底层输入输出是否与仿真一致。
+
+### 多机共同建图后导航一开始规划失败
+
+优先看机器人初始位置是否落在融合地图里的静态障碍或未知区域。共同建图保存地图时应保存 `/merged_map`；如果保存了单车 map，或融合图上的车身残影没有清理干净，Nav2 刚启动时可能认为机器人在障碍区里。
+
+### 多机导航 RViz 里 TF 短时间报警
+
+如果只在刚启动时出现，通常是 Gazebo、map_server、AMCL 和 Nav2 生命周期还没全部激活。持续存在时检查地图是否加载成功、初始位姿是否在地图内，以及对应 namespace 下 AMCL 是否已经发布 `map -> odom`。
 
 ---
 

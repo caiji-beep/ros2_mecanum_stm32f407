@@ -72,6 +72,10 @@ def _prepare_multi_robot_mapping(context, *args, **kwargs):
     target_frame = context.launch_configurations.get("target_frame", "world")
     merged_map_topic = context.launch_configurations.get("merged_map_topic", "/merged_map")
     publish_period = context.launch_configurations.get("merge_publish_period", "1.0")
+    clear_start_regions = context.launch_configurations.get("clear_start_regions", "true")
+    clear_start_radius = context.launch_configurations.get("clear_start_radius", "0.45")
+    clear_robot_trails = context.launch_configurations.get("clear_robot_trails", "true")
+    clear_robot_trail_radius = context.launch_configurations.get("clear_robot_trail_radius", "0.35")
 
     spawn_delay = _as_float(context.launch_configurations.get("delay_spawn", "4.0"), 4.0)
     mapping_delay = _as_float(context.launch_configurations.get("delay_mapping", "8.0"), 8.0)
@@ -148,6 +152,19 @@ def _prepare_multi_robot_mapping(context, *args, **kwargs):
                 f"/{robot_1['namespace']}/map",
                 f"/{robot_2['namespace']}/map",
             ],
+            "clear_regions": [
+                f"{robot_1['initial_pose_x']},{robot_1['initial_pose_y']},{clear_start_radius}",
+                f"{robot_2['initial_pose_x']},{robot_2['initial_pose_y']},{clear_start_radius}",
+            ] if _as_bool(clear_start_regions) else [""],
+            "clear_robot_frames": [
+                _join_frame(robot_1["tf_prefix"], "base_link"),
+                _join_frame(robot_2["tf_prefix"], "base_link"),
+            ] if _as_bool(clear_robot_trails) else [""],
+            "clear_robot_initial_poses": [
+                f"{robot_1['initial_pose_x']},{robot_1['initial_pose_y']}",
+                f"{robot_2['initial_pose_x']},{robot_2['initial_pose_y']}",
+            ] if _as_bool(clear_robot_trails) else [""],
+            "clear_robot_radius": float(clear_robot_trail_radius),
         }],
     )
 
@@ -214,6 +231,10 @@ def generate_launch_description():
         DeclareLaunchArgument("target_frame", default_value="world"),
         DeclareLaunchArgument("merged_map_topic", default_value="/merged_map"),
         DeclareLaunchArgument("merge_publish_period", default_value="1.0"),
+        DeclareLaunchArgument("clear_start_regions", default_value="true"),
+        DeclareLaunchArgument("clear_start_radius", default_value="0.45"),
+        DeclareLaunchArgument("clear_robot_trails", default_value="true"),
+        DeclareLaunchArgument("clear_robot_trail_radius", default_value="0.35"),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
         DeclareLaunchArgument("sim_drive_mode", default_value="planar", choices=["ros2_control", "planar"]),

@@ -135,7 +135,7 @@ controller_server:
       debug_trajectory_details: False
 
       # 目前真机横移效果较差，先禁用 y 方向导航，让车以前进+转向为主。
-      min_vel_x: 0.0
+      min_vel_x: -0.22
       max_vel_x: 0.22
       min_vel_y: 0.0
       max_vel_y: 0.0
@@ -317,7 +317,7 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
 
     max_velocity: [0.22, 0.0, 1.0]
-    min_velocity: [-0.05, 0.0, -1.0]
+    min_velocity: [-0.11, 0.0, -1.0]
 
     max_accel: [1.0, 0.0, 2.8]
     max_decel: [-1.0, 0.0, -2.8]

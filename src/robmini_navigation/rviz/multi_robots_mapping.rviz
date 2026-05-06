@@ -6,11 +6,12 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1
+        - /TF1/Status1
         - /Maps1
         - /robmini_011
         - /robmini_021
       Splitter Ratio: 0.5833333134651184
-    Tree Height: 380
+    Tree Height: 673
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -51,19 +52,19 @@ Visualization Manager:
         All Enabled: false
         robmini_01/base_link:
           Value: true
+        robmini_01/imu_link:
+          Value: true
         robmini_01/laser:
           Value: true
         robmini_01/map:
           Value: true
-        robmini_01/odom:
-          Value: true
         robmini_02/base_link:
+          Value: true
+        robmini_02/imu_link:
           Value: true
         robmini_02/laser:
           Value: true
         robmini_02/map:
-          Value: true
-        robmini_02/odom:
           Value: true
         world:
           Value: true
@@ -73,7 +74,11 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        {}
+        world:
+          robmini_01/map:
+            {}
+          robmini_02/map:
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz_common/Group
@@ -99,7 +104,7 @@ Visualization Manager:
             Value: /merged_map_updates
           Use Timestamp: false
           Value: true
-        - Alpha: 0.45
+        - Alpha: 0.44999998807907104
           Class: rviz_default_plugins/Map
           Color Scheme: map
           Draw Behind: false
@@ -120,7 +125,7 @@ Visualization Manager:
             Value: /robmini_01/map_updates
           Use Timestamp: false
           Value: true
-        - Alpha: 0.45
+        - Alpha: 0.44999998807907104
           Class: rviz_default_plugins/Map
           Color Scheme: map
           Draw Behind: false
@@ -163,6 +168,41 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
+            robmini_01/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/front_left_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/front_right_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/imu_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/laser:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/rear_left_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_01/rear_right_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
           Mass Properties:
             Inertia: false
             Mass: false
@@ -227,6 +267,41 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
+            robmini_02/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/front_left_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/front_right_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/imu_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/laser:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/rear_left_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robmini_02/rear_right_wheel_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
           Mass Properties:
             Inertia: false
             Mass: false
@@ -310,8 +385,8 @@ Visualization Manager:
       Scale: 45
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
-      X: -0.4
-      Y: -0.2
+      X: -0.4000000059604645
+      Y: -0.20000000298023224
     Saved: ~
 Window Geometry:
   Displays:
@@ -319,6 +394,7 @@ Window Geometry:
   Height: 824
   Hide Left Dock: false
   Hide Right Dock: true
+  QMainWindow State: 000000ff00000000fd0000000100000000000001fc000002defc0200000004fb000000100044006900730070006c006100790073010000003d000002de000000c900fffffffb0000001200530065006c0065006300740069006f006e0000000154000000850000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000195000000a50000005c00fffffffb0000000a0056006900650077007300000001fd0000011e000000a400ffffff00000376000002de00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -327,4 +403,4 @@ Window Geometry:
     collapsed: false
   Width: 1400
   X: 80
-  Y: 40
+  Y: 27

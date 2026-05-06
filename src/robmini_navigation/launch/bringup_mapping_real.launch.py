@@ -156,6 +156,8 @@ def _gen_temp_yaml(context, *args, **kwargs):
     if not map_frame:
         map_frame = _join_frame(tf_prefix, "map")
 
+    scan_topic = context.launch_configurations.get("scan_topic", "scan").strip() or "scan"
+
     # 获取 robmini_navigation 功能包路径。
     pkg_share = FindPackageShare("robmini_navigation").perform(context)
     template_path = os.path.join(pkg_share, "config", "slam_template.yaml")
@@ -173,6 +175,7 @@ def _gen_temp_yaml(context, *args, **kwargs):
             "${base_frame}": _join_frame(tf_prefix, "base_link"),
             "${odom_frame}": _join_frame(tf_prefix, "odom"),
             "${map_frame}": map_frame,
+            "${scan_topic}": scan_topic,
         },
     )
 
@@ -278,6 +281,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "map_frame",
                 default_value="",
+            ),
+
+            DeclareLaunchArgument(
+                "scan_topic",
+                default_value="scan",
             ),
 
             # 是否使用仿真时间。
