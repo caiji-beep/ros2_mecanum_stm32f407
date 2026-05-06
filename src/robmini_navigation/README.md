@@ -102,6 +102,18 @@ ros2 launch robmini_navigation bringup_mapping_real.launch.py robot_name:=robmin
 ros2 launch robmini_navigation bringup_mapping_sim.launch.py robot_name:=robmini
 ```
 
+### 仿真多机器人共同建图
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py
+```
+
+默认启动 `robmini_01` 与 `robmini_02` 两台仿真车，每台车各自运行独立 namespace 下的 `slam_toolbox`。
+合图节点订阅 `/robmini_01/map` 和 `/robmini_02/map`，输出总图 `/merged_map`，RViz2 会直接加载包内 `multi_robots_mapping.rviz`。
+
+这套流程适合仿真验证多机器人共同建图的 topic、TF 和 RViz 展示链路；它不是后端联合优化式 SLAM，地图对齐主要由每台车的 `map` 到 `world` 静态 TF 决定。
+如需手动调整合图对齐，可传入 `map_origin_x_1/map_origin_y_1/map_origin_yaw_1` 或 `map_origin_x_2/map_origin_y_2/map_origin_yaw_2`。
+
 ### 仿真多机器人导航
 
 ```bash
@@ -142,6 +154,10 @@ SLAM 配置模板，可按 `robot_name` 做字符串替换，适合命名空间�
 ### `config/teleop_params.yaml`
 
 键盘控制节点相关参数配置。
+
+### `scripts/simple_map_merge.py`
+
+仿真多机器人共同建图使用的轻量合图节点，订阅多台机器人的 `nav_msgs/OccupancyGrid`，根据 TF 转到统一坐标系后发布 `/merged_map`。
 
 ---
 

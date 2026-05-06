@@ -117,7 +117,18 @@ ros2 launch robmini_navigation demo_sim_multi_robot_navigation.launch.py
 默认会生成 `robmini_01` 和 `robmini_02` 两台车；RViz2 直接加载包内 `multi_robots_navigation.rviz`。
 使用工具栏里的 `2D Goal Pose` 下发导航目标，默认 Topic 是 `/robmini_01/goal_pose`；要指挥 2 号车，在 Tool Properties 里把 Topic 改成 `/robmini_02/goal_pose`。
 
-### 6.5 键盘控制
+### 6.5 仿真多机器人共同建图
+
+```bash
+ros2 launch robmini_navigation demo_sim_multi_robot_mapping.launch.py
+```
+
+默认启动 `robmini_01` 和 `robmini_02` 两台仿真车，每台车各自运行一套 `slam_toolbox`。
+合图节点会订阅 `/robmini_01/map` 与 `/robmini_02/map`，并发布合成后的 `/merged_map`；RViz2 会同时显示总图和每台车的局部建图结果。
+
+如果两张子地图在 RViz2 中有偏移，可以通过 `map_origin_x_1/map_origin_y_1/map_origin_yaw_1` 和 `map_origin_x_2/map_origin_y_2/map_origin_yaw_2` 调整每台车的 `map` 到 `world` 的静态对齐关系。
+
+### 6.6 键盘控制
 
 ```bash
 ros2 run robmini_navigation mecanum_teleop_keyboard
