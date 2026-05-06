@@ -1,66 +1,95 @@
 # 命名空间与 TF 约定
 
-本项目现在把以前混在一起的 `robot_name` 拆成三个概念：
+本项目把机器人标识拆成三个独立概念，避免多机器人时 topic、controller 和 TF 混在一起。
 
-- `namespace`：ROS 图命名空间，用来隔离 topic、service、action、node 名称。
-- `tf_prefix`：TF frame 前缀，用来生成 `robot1/base_link` 这类 frame id。
-- `map_frame`：定位和导航使用的全局坐标系。
+| 参数 | 作用 | 示例 |
+| --- | --- | --- |
+| `robot_name` | Gazebo entity 名称或默认机器人名 | `robmini_01` |
+| `namespace` | ROS 图命名空间，隔离 topic、service、action、node | `/robmini_01` |
+| `tf_prefix` | TF frame 前缀，隔离 `base_link`、`odom`、`laser` 等 frame | `robmini_01/base_link` |
+| `map_frame` | Nav2、AMCL、SLAM 使用的全局地图 frame | `map` 或 `robmini_01/map` |
 
 ## 默认单机器人
 
-默认启动命令保持不变：
+默认启动：
 
 ```bash
 ros2 launch robmini_navigation demo_real_navigation.launch.py
 ```
 
-上面这个命令等价于：
+等价于：
 
 ```text
-namespace = robmini
-tf_prefix = robmini
-map_frame = robmini/map
+robot_name = robmini
+namespace  = robmini
+tf_prefix  = robmini
+map_frame  = robmini/map
 ```
 
-也可以显式写出来：
+也可以显式写出：
 
 ```bash
 ros2 launch robmini_navigation demo_real_navigation.launch.py \
+  robot_name:=robmini \
   namespace:=robmini \
   tf_prefix:=robmini
 ```
 
+对应主要接口：
+
+```text
+/robmini/cmd_vel
+/robmini/odom
+/robmini/scan
+/robmini/map
+robmini/map -> robmini/odom -> robmini/base_link -> robmini/laser
+```
+
 ## 多机器人共享地图
 
-如果多个机器人共用同一张全局地图，推荐让所有机器人使用同一个 `map` frame，
-每台机器人只隔离自己的 namespace 和 TF 前缀：
+多机器人共用同一张全局地图时，推荐所有机器人使用同一个 `map` frame，同时用各自的 `namespace` 和 `tf_prefix` 隔离机器人本体。
 
 ```bash
 ros2 launch robmini_navigation demo_real_navigation.launch.py \
-  robot_name:=robot1 namespace:=robot1 tf_prefix:=robot1 map_frame:=map
+  robot_name:=robot1 \
+  namespace:=robot1 \
+  tf_prefix:=robot1 \
+  map_frame:=map
 
 ros2 launch robmini_navigation demo_real_navigation.launch.py \
-  robot_name:=robot2 namespace:=robot2 tf_prefix:=robot2 map_frame:=map
+  robot_name:=robot2 \
+  namespace:=robot2 \
+  tf_prefix:=robot2 \
+  map_frame:=map
 ```
 
-对应 TF 结构大致是：
+对应 TF 结构：
 
 ```text
 map -> robot1/odom -> robot1/base_link -> robot1/laser
 map -> robot2/odom -> robot2/base_link -> robot2/laser
 ```
 
-如果希望每台机器人各自拥有独立地图，不传 `map_frame:=map` 即可，默认会变成：
+## 多机器人独立地图
+
+如果每台机器人各自建图或各自定位，不传 `map_frame:=map` 即可使用默认规则：
 
 ```text
-<tf_prefix>/map
+map_frame = <tf_prefix>/map
 ```
 
-例如默认机器人就是 `robmini/map`。
+例如：
 
-## 每台机器人需要隔离的接口
+```text
+robmini_01/map -> robmini_01/odom -> robmini_01/base_link
+robmini_02/map -> robmini_02/odom -> robmini_02/base_link
+```
 
-每台机器人自己的 ROS 接口都应该在 namespace 下：
+仿真多机器人共同建图中，两个局部地图会再通过静态关系对齐到统一的 `world` frame，并由 `simple_map_merge.py` 发布 `/merged_map`。
+
+## 需要隔离的 ROS 接口
+
+每台机器人自己的接口都应位于 namespace 下：
 
 ```text
 /<namespace>/cmd_vel
@@ -80,44 +109,23 @@ map -> robot2/odom -> robot2/base_link -> robot2/laser
 /<namespace>/global_costmap/*
 ```
 
-## Controller 是否需要命名空间
-
-需要。
-
-多机器人时，`controller_manager`、controller 的 service、controller 内部 topic 都必须隔离。
-本项目采用下面这种形式：
-
-```text
-/<namespace>/controller_manager
-/<namespace>/joint_state_broadcaster
-/<namespace>/mecanum_drive_controller
-```
-
-controller 名称本身不需要加机器人名前缀，因为它已经处在各自 namespace 下。
-也就是说，多台机器人都可以叫 `mecanum_drive_controller`，只要分别位于：
-
-```text
-/robot1/mecanum_drive_controller
-/robot2/mecanum_drive_controller
-```
-
-旧的临时名称已经不再使用：
-
-```text
-joint_broad_test01
-mecanum_drive_controller_test01
-joint_broad_test02
-mecanum_cont_test02
-```
-
-现在统一使用：
+controller 名称本身不需要加机器人名前缀，因为它已经处在 namespace 下。多台机器人都可以叫：
 
 ```text
 joint_state_broadcaster
 mecanum_drive_controller
 ```
 
-## TF 话题怎么处理
+实际完整路径分别是：
+
+```text
+/robot1/joint_state_broadcaster
+/robot1/mecanum_drive_controller
+/robot2/joint_state_broadcaster
+/robot2/mecanum_drive_controller
+```
+
+## TF 话题规则
 
 TF 话题保持全局：
 
@@ -126,15 +134,11 @@ TF 话题保持全局：
 /tf_static
 ```
 
-不要把 TF 话题改成 `/robot1/tf`、`/robot2/tf`。隔离靠 frame id 完成，
-例如 `robot1/base_link` 和 `robot2/base_link`。
+不要改成 `/robot1/tf`、`/robot2/tf`。多机器人 TF 隔离靠 frame id 完成，例如 `robot1/base_link` 和 `robot2/base_link`。这样 Nav2、AMCL、SLAM 和 RViz 都能在同一棵 TF 树里看到完整关系。
 
-这样 Nav2、RViz、AMCL、SLAM 都能在同一个 TF 树里看到完整关系。
+## RViz 远程显示
 
-## RViz 远程显示建议
-
-树莓派没有可视化界面时，机器人栈运行在树莓派，RViz 可以运行在虚拟机/远程 Ubuntu。
-两边需要保持相同 DDS 配置，例如写入 `~/.bashrc`：
+树莓派或车载主机运行机器人栈，远程电脑运行 RViz 时，两边需要保持相同 DDS 配置：
 
 ```bash
 export ROS_DOMAIN_ID=20
@@ -142,10 +146,9 @@ export ROS_LOCALHOST_ONLY=0
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ```
 
-`ROS_LOCALHOST_ONLY` 必须是 `0`，否则 RViz 只能看到本机 ROS 节点，看不到树莓派上的 topic。
+`ROS_LOCALHOST_ONLY` 必须为 `0`，否则 RViz 只能看到本机 ROS 节点。
 
-`rviz/` 目录下的配置文件仍然保留 `/robmini` 作为默认模板，方便默认单机器人直接打开。
-默认 `/robmini` 可以使用你现在的手动方式：
+默认 `/robmini` 可以直接打开包内 RViz 配置：
 
 ```bash
 ros2 run rviz2 rviz2 \
@@ -153,10 +156,4 @@ ros2 run rviz2 rviz2 \
   --ros-args -r __ns:=/robmini -p use_sim_time:=false
 ```
 
-如果不是默认 namespace，推荐在虚拟机上使用只启动 RViz 的 launch，启动文件会自动生成临时 RViz 配置，
-不会重复启动 Nav2 或底盘节点：
-
-```bash
-ros2 launch robmini_navigation rviz.launch.py \
-  namespace:=robot1 tf_prefix:=robot1 map_frame:=map
-```
+非默认 namespace 时，优先使用对应场景的 demo launch 自带 RViz 配置；手动打开 RViz 时，需要同步修改 Fixed Frame、LaserScan、RobotModel、Nav2 Goal 等显示项和工具 Topic。

@@ -1,6 +1,6 @@
-# can_socket_demo（humble_real 分支）
+# can_socket_demo
 
-`can_socket_demo` 是 `humble_real` 分支中的底层调试辅助包，用于在真机环境下快速验证 **Linux 端 CAN 接口是否正常收帧**。
+`can_socket_demo` 是底层调试辅助包，用于在真机环境下快速验证 **Linux 端 CAN 接口是否正常收帧**。
 
 如果你的系统中存在：
 
