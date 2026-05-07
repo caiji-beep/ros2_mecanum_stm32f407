@@ -12,6 +12,9 @@
 CanRxMsg MyCan_RxMsg;
 uint8_t MyCan_RxFlag;
 
+volatile uint32_t g_can_tx_timeout_count = 0;
+volatile uint32_t g_can_tx_nomailbox_count = 0;
+
 static void CAN_ClearBuffer(uint8_t *buffer)
 {
     uint8_t i;
@@ -157,15 +160,33 @@ void CAN1_Init(void)
 uint8_t CAN1_Send(CanTxMsg *TxMessage)
 {
     uint8_t TransmitMailbox;
+    uint32_t timeout = 1000000U;
 
     if (TxMessage == NULL)
     {
         return 0U;
     }
 
+    /*
+     * bxCAN 只有 3 个发送邮箱。
+     * 如果连续发送超过 3 帧，需要等待至少一个邮箱空闲。
+     * 空闲置1至少一个邮箱空闲 比如 TME0=1, TME1=0, TME2=0
+     * 跳出等待
+     */
+
+    while ((CAN1->TSR & CAN_TSR_TME) == 0U)
+    {
+        if (timeout-- == 0U)
+        {
+            g_can_tx_timeout_count++;
+            return 0U;
+        }
+    }
+
     TransmitMailbox = CAN_Transmit(CAN1, TxMessage);
     if (TransmitMailbox == CAN_TxStatus_NoMailBox)
     {
+        g_can_tx_nomailbox_count++;
         return 0U;
     }
 
