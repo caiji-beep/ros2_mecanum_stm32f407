@@ -106,6 +106,7 @@ def _prepare_multi_robot_nodes(context, *args, **kwargs):
                 "initial_pose_x": robot["initial_pose_x"],
                 "initial_pose_y": robot["initial_pose_y"],
                 "initial_pose_a": robot["initial_pose_a"],
+                "use_ekf": "false",
             }.items(),
         )
 

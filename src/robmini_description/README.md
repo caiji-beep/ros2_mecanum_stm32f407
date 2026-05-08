@@ -65,6 +65,7 @@ robmini_description/
 ### `config/robmini_mecanum_controllers.yaml`
 
 该文件定义麦克纳姆底盘控制器相关参数，是控制器能否正确加载的关键。
+默认由底盘控制器发布 `odom -> base_link`；当 `real_bringup.launch.py` 传入 `use_ekf:=true` 时，会在运行时生成临时控制器参数并关闭 `enable_odom_tf`，交给 `robot_localization` 发布融合后的 TF。
 
 ### `urdf/robmini_run.urdf.xacro`
 

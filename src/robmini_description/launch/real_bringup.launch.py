@@ -66,7 +66,7 @@ def _replace_placeholders(obj, replacements):
     return obj
 
 
-def _write_controller_yaml(controller_yaml, tf_prefix):
+def _write_controller_yaml(controller_yaml, tf_prefix, enable_odom_tf):
     with open(controller_yaml, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -75,6 +75,9 @@ def _write_controller_yaml(controller_yaml, tf_prefix):
         "${base_frame}": _join_frame(tf_prefix, "base_link"),
         "${odom_frame}": _join_frame(tf_prefix, "odom"),
     })
+
+    controller_params = config.setdefault("/**/mecanum_drive_controller", {}).setdefault("ros__parameters", {})
+    controller_params["enable_odom_tf"] = _as_bool(enable_odom_tf)
 
     fd, temp_path = tempfile.mkstemp(prefix="robmini_controllers_", suffix=".yaml")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -95,12 +98,17 @@ def _prepare_nodes(context, *args, **kwargs):
     use_mock = context.launch_configurations.get("use_mock", "false")
     use_sim_time = context.launch_configurations.get("use_sim_time", "false")
     use_sim_time_bool = _as_bool(use_sim_time)
+    use_ekf = context.launch_configurations.get("use_ekf", "false")
+    enable_odom_tf = context.launch_configurations.get("enable_odom_tf", "true")
+    if _as_bool(use_ekf):
+        enable_odom_tf = "false"
 
     pkg_share = get_package_share_directory("robmini_description")
     xacro_file = os.path.join(pkg_share, "urdf", "robmini_run.urdf.xacro")
     controller_yaml = _write_controller_yaml(
         os.path.join(pkg_share, "config", "robmini_mecanum_controllers.yaml"),
         tf_prefix,
+        enable_odom_tf,
     )
 
     robot_description = ParameterValue(
@@ -190,5 +198,7 @@ def generate_launch_description():
         DeclareLaunchArgument("tf_prefix", default_value=""),
         DeclareLaunchArgument("use_sim_time", default_value="false"),
         DeclareLaunchArgument("use_mock", default_value="false"),
+        DeclareLaunchArgument("use_ekf", default_value="false"),
+        DeclareLaunchArgument("enable_odom_tf", default_value="true"),
         OpaqueFunction(function=_prepare_nodes),
     ])

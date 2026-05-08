@@ -33,6 +33,40 @@ ros2 launch robmini_navigation demo_sim_navigation.launch.py \
   map_file:=room_mini/room_mini.yaml
 ```
 
+## 真机 EKF 融合
+
+真机导航和真机建图支持可选 EKF：
+
+```bash
+ros2 launch robmini_navigation demo_real_navigation.launch.py \
+  use_ekf:=true \
+  can_interface:=can0
+```
+
+```bash
+ros2 launch robmini_navigation demo_real_mapping.launch.py \
+  use_ekf:=true \
+  can_interface:=can0
+```
+
+启用后链路为：
+
+```text
+/robmini/odom
+/robmini/imu/data_raw
+  -> robot_localization/ekf_node
+  -> /robmini/odometry/filtered
+  -> odom -> base_link
+```
+
+为了避免 TF 冲突，`real_bringup.launch.py` 在 `use_ekf:=true` 时会自动关闭底盘控制器的 `enable_odom_tf`，由 EKF 发布 `odom -> base_link`。Nav2 会在运行时把 `odom_topic` 改为 `odometry/filtered`，原始 `config/nav2_params.yaml` 不会被改动。
+
+当前 EKF 配置位于 `config/ekf_imu_odom.yaml`，第一版只融合轮速 odom 的平面速度和 IMU 的 `angular_velocity.z`，不融合下位机欧拉角 yaw。使用前需要安装：
+
+```bash
+sudo apt install ros-humble-robot-localization
+```
+
 ## 键盘控制
 
 默认键位：

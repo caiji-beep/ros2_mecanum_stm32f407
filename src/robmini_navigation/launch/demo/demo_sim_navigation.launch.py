@@ -46,7 +46,8 @@ def generate_launch_description():
             "map_frame": map_frame,
             "use_sim_time": use_sim_time,
             "use_rviz": use_rviz,
-            "map_file": map_file
+            "map_file": map_file,
+            "use_ekf": "false",
         }.items(),
     )
 

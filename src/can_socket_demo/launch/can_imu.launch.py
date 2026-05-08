@@ -17,6 +17,10 @@ def _join_frame(prefix, frame):
     return f"{prefix}/{frame}" if prefix else frame
 
 
+def _as_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _prepare_node(context, *args, **kwargs):
     robot_name = context.launch_configurations.get("robot_name", "robmini")
     namespace = _clean_namespace(context.launch_configurations.get("namespace", ""))
@@ -43,6 +47,14 @@ def _prepare_node(context, *args, **kwargs):
                 "imu_topic": context.launch_configurations.get("imu_topic", "imu/data_raw"),
                 "frame_id": frame_id,
                 "tf_prefix": tf_prefix,
+                "publish_orientation": _as_bool(
+                    context.launch_configurations.get("publish_orientation", "false")
+                ),
+                "gyro_unit": context.launch_configurations.get("gyro_unit", "rad_per_s"),
+                "orientation_unit": context.launch_configurations.get("orientation_unit", "rad"),
+                "require_calibrated": _as_bool(
+                    context.launch_configurations.get("require_calibrated", "false")
+                ),
             }],
         )
     ]
@@ -56,5 +68,9 @@ def generate_launch_description():
         DeclareLaunchArgument("interface", default_value="can0"),
         DeclareLaunchArgument("imu_topic", default_value="imu/data_raw"),
         DeclareLaunchArgument("frame_id", default_value=""),
+        DeclareLaunchArgument("publish_orientation", default_value="false"),
+        DeclareLaunchArgument("gyro_unit", default_value="rad_per_s"),
+        DeclareLaunchArgument("orientation_unit", default_value="rad"),
+        DeclareLaunchArgument("require_calibrated", default_value="false"),
         OpaqueFunction(function=_prepare_node),
     ])

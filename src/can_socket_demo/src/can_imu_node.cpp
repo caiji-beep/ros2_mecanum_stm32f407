@@ -15,6 +15,8 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
+#include <cctype>
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -25,11 +27,15 @@
  *
  * 该节点通过 Linux SocketCAN 读取 IMU 发送的 CAN 数据帧，
  * 解析加速度、角速度和姿态角，并发布为 sensor_msgs::msg::Imu 消息。
+ * 默认不发布姿态四元数，只发布角速度和线加速度，避免把无磁力计约束的 yaw 漂移当成绝对姿态融合。
  *
  * CAN 数据帧约定：
- * - 0x180：线加速度数据；
- * - 0x181：角速度数据；
- * - 0x182：姿态角数据，并触发 IMU 消息发布。
+ * - 0x180：线加速度数据，ax/ay/az = g * 1000；
+ * - 0x181：角速度数据，gx/gy/gz = rad/s * 1000；
+ * - 0x182：姿态角数据，roll/pitch/yaw = rad * 1000，并触发 IMU 消息发布；
+ * - 0x184：状态帧，包含 seq、状态 flags、错误码和恢复计数等。
+ *
+ * 0x180~0x182 的第 6 字节为 seq，第 7 字节为状态 flags。
  */
 class CanImuNode : public rclcpp::Node
 {
@@ -45,9 +51,18 @@ public:
     declare_parameter<std::string>("imu_topic", "imu/data_raw");
     declare_parameter<std::string>("frame_id", "");
     declare_parameter<std::string>("tf_prefix", "");
+    declare_parameter<bool>("publish_orientation", false);
+    declare_parameter<std::string>("gyro_unit", "rad_per_s");
+    declare_parameter<std::string>("orientation_unit", "rad");
+    declare_parameter<bool>("require_calibrated", false);
 
     const auto if_name = get_parameter("interface").as_string();
     const auto imu_topic = get_parameter("imu_topic").as_string();
+    publish_orientation_ = get_parameter("publish_orientation").as_bool();
+    require_calibrated_ = get_parameter("require_calibrated").as_bool();
+    gyro_scale_to_rad_ = unit_scale_to_rad(get_parameter("gyro_unit").as_string(), "gyro_unit");
+    orientation_scale_to_rad_ =
+      unit_scale_to_rad(get_parameter("orientation_unit").as_string(), "orientation_unit");
 
     // 若未显式指定 frame_id，则根据 tf_prefix 生成默认 IMU 坐标系。
     frame_id_ = get_parameter("frame_id").as_string();
@@ -67,8 +82,9 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "CAN IMU listening on %s, publishing '%s' with frame_id '%s'.",
-      if_name.c_str(), imu_topic.c_str(), frame_id_.c_str());
+      "CAN IMU listening on %s, publishing '%s' with frame_id '%s', publish_orientation=%s.",
+      if_name.c_str(), imu_topic.c_str(), frame_id_.c_str(),
+      publish_orientation_ ? "true" : "false");
   }
 
   /**
@@ -82,6 +98,11 @@ public:
   }
 
 private:
+  static constexpr uint8_t imu_can_flag_data_valid_ = 0x01U;
+  static constexpr uint8_t imu_can_flag_calibrated_ = 0x02U;
+  static constexpr uint8_t imu_can_flag_recovering_ = 0x04U;
+  static constexpr uint8_t imu_can_flag_fault_ = 0x08U;
+
   /**
    * @brief 清理 TF 前缀中的首尾斜杠。
    *
@@ -127,6 +148,48 @@ private:
   static int16_t bytes_to_int16(uint8_t lo, uint8_t hi)
   {
     return static_cast<int16_t>((static_cast<uint16_t>(hi) << 8) | lo);
+  }
+
+  static uint16_t bytes_to_uint16(uint8_t lo, uint8_t hi)
+  {
+    return static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
+  }
+
+  /**
+   * @brief 将角度或角速度单位转换为 ROS 约定的弧度单位。
+   */
+  double unit_scale_to_rad(std::string unit, const std::string & parameter_name)
+  {
+    std::transform(unit.begin(), unit.end(), unit.begin(), [](unsigned char c) {
+      return static_cast<char>(std::tolower(c));
+    });
+
+    unit.erase(std::remove_if(unit.begin(), unit.end(), [](unsigned char c) {
+      return std::isspace(c) != 0;
+    }), unit.end());
+
+    if (
+      unit == "rad" || unit == "radian" || unit == "radians" ||
+      unit == "rad/s" || unit == "rad_per_s" || unit == "radps" ||
+      unit == "radian_per_s" || unit == "radians_per_second")
+    {
+      return 1.0;
+    }
+
+    if (
+      unit == "deg" || unit == "degree" || unit == "degrees" ||
+      unit == "deg/s" || unit == "deg_per_s" || unit == "dps" ||
+      unit == "degree_per_s" || unit == "degrees_per_second")
+    {
+      constexpr double pi = 3.14159265358979323846;
+      return pi / 180.0;
+    }
+
+    RCLCPP_WARN(
+      get_logger(),
+      "Unknown %s '%s', using radians scale.",
+      parameter_name.c_str(), unit.c_str());
+    return 1.0;
   }
 
   /**
@@ -195,29 +258,40 @@ private:
    */
   void poll_can()
   {
-    struct can_frame frame;
-    const auto nbytes = read(sock_, &frame, sizeof(frame));
+    while (true) {
+      struct can_frame frame;
+      const auto nbytes = read(sock_, &frame, sizeof(frame));
 
-    // 非阻塞读取下，暂无数据属于正常情况。
-    if (nbytes < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      // 非阻塞读取下，暂无数据属于正常情况。
+      if (nbytes < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          return;
+        }
+
+        RCLCPP_WARN(get_logger(), "read() error: %s", std::strerror(errno));
         return;
       }
 
-      RCLCPP_WARN(get_logger(), "read() error: %s", std::strerror(errno));
-      return;
-    }
+      if (nbytes < static_cast<ssize_t>(sizeof(struct can_frame))) {
+        RCLCPP_WARN(get_logger(), "incomplete CAN frame");
+        return;
+      }
 
-    if (nbytes < static_cast<ssize_t>(sizeof(struct can_frame))) {
-      RCLCPP_WARN(get_logger(), "incomplete CAN frame");
-      return;
+      handle_can_frame(frame);
     }
+  }
 
+  void handle_can_frame(const struct can_frame & frame)
+  {
     // 仅保留标准帧 ID。
     const uint32_t id = frame.can_id & CAN_SFF_MASK;
 
-    // 当前协议至少需要 6 字节数据和 1 字节序号。
-    if (frame.can_dlc < 7) {
+    if (id != 0x180 && id != 0x181 && id != 0x182 && id != 0x184) {
+      return;
+    }
+
+    // 下位机 IMU 协议固定使用 8 字节标准数据帧。
+    if (frame.can_dlc < 8) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 2000,
         "CAN frame 0x%03X ignored because dlc=%u is too short.",
@@ -226,16 +300,106 @@ private:
       return;
     }
 
+    if (id == 0x184) {
+      update_status(frame);
+      return;
+    }
+
+    const uint8_t seq = frame.data[6];
+    const uint8_t status_flags = frame.data[7];
+    if (!sensor_status_ok(status_flags, id)) {
+      return;
+    }
+
     // 按 CAN ID 更新对应 IMU 数据。
     if (id == 0x180) {
-      update_acceleration(frame);
+      update_acceleration(frame, seq);
     } else if (id == 0x181) {
-      update_gyro(frame);
+      update_gyro(frame, seq);
     } else if (id == 0x182) {
-      update_orientation(frame);
+      update_orientation(frame, seq);
 
-      // 姿态帧到达后，认为一组 IMU 数据基本完整，发布消息。
-      publish_imu();
+      if (have_accel_ && have_gyro_ && last_accel_seq_ == seq && last_gyro_seq_ == seq) {
+        publish_imu(seq, status_flags);
+      } else {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 2000,
+          "IMU seq mismatch, waiting for a complete sample: accel=%u gyro=%u orientation=%u.",
+          last_accel_seq_, last_gyro_seq_, seq);
+      }
+    }
+  }
+
+  bool sensor_status_ok(uint8_t flags, uint32_t id)
+  {
+    last_status_flags_ = flags;
+
+    if ((flags & imu_can_flag_data_valid_) == 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "IMU CAN frame 0x%03X ignored because data_valid is false. flags=0x%02X",
+        id, flags);
+      return false;
+    }
+
+    if ((flags & imu_can_flag_fault_) != 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "IMU CAN frame 0x%03X ignored because fault flag is set. flags=0x%02X last_error=%u",
+        id, flags, last_error_);
+      return false;
+    }
+
+    if (require_calibrated_ && (flags & imu_can_flag_calibrated_) == 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "IMU CAN frame 0x%03X ignored because calibrated flag is false. flags=0x%02X",
+        id, flags);
+      return false;
+    }
+
+    if ((flags & imu_can_flag_recovering_) != 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000,
+        "IMU is recovering, using valid data with caution. flags=0x%02X",
+        flags);
+    }
+
+    return true;
+  }
+
+  void update_status(const struct can_frame & frame)
+  {
+    last_status_seq_ = frame.data[0];
+    last_status_flags_ = frame.data[1];
+    last_error_ = frame.data[2];
+    last_consecutive_failures_ = frame.data[3];
+    last_read_fail_count_lsb_ = frame.data[4];
+    last_recovery_count_lsb_ = frame.data[5];
+    last_update_ms_lsb_ = bytes_to_uint16(frame.data[6], frame.data[7]);
+
+    if ((last_status_flags_ & imu_can_flag_fault_) != 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "IMU status fault: seq=%u flags=0x%02X error=%u failures=%u read_fail_lsb=%u recovery_lsb=%u update_ms_lsb=%u",
+        last_status_seq_, last_status_flags_, last_error_, last_consecutive_failures_,
+        last_read_fail_count_lsb_, last_recovery_count_lsb_, last_update_ms_lsb_);
+      return;
+    }
+
+    if ((last_status_flags_ & imu_can_flag_data_valid_) == 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "IMU status invalid: seq=%u flags=0x%02X error=%u failures=%u",
+        last_status_seq_, last_status_flags_, last_error_, last_consecutive_failures_);
+      return;
+    }
+
+    if ((last_status_flags_ & imu_can_flag_calibrated_) == 0U) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000,
+        "IMU status not calibrated yet: seq=%u flags=0x%02X",
+        last_status_seq_, last_status_flags_);
     }
   }
 
@@ -244,7 +408,7 @@ private:
    *
    * 数据比例：raw / 1000.0 表示 g，再乘以重力加速度转换为 m/s^2。
    */
-  void update_acceleration(const struct can_frame & frame)
+  void update_acceleration(const struct can_frame & frame, uint8_t seq)
   {
     const auto ax_raw = bytes_to_int16(frame.data[0], frame.data[1]);
     const auto ay_raw = bytes_to_int16(frame.data[2], frame.data[3]);
@@ -255,7 +419,8 @@ private:
     last_ax_ms2_ = (ax_raw / 1000.0) * gravity;
     last_ay_ms2_ = (ay_raw / 1000.0) * gravity;
     last_az_ms2_ = (az_raw / 1000.0) * gravity;
-    last_seq_ = frame.data[6];
+    last_accel_seq_ = seq;
+    have_accel_ = true;
   }
 
   /**
@@ -264,12 +429,13 @@ private:
    * 数据比例：raw / 1000.0。
    * 具体单位应与 IMU 设备协议保持一致，通常应为 rad/s 或 deg/s。
    */
-  void update_gyro(const struct can_frame & frame)
+  void update_gyro(const struct can_frame & frame, uint8_t seq)
   {
-    last_gx_ = bytes_to_int16(frame.data[0], frame.data[1]) / 1000.0;
-    last_gy_ = bytes_to_int16(frame.data[2], frame.data[3]) / 1000.0;
-    last_gz_ = bytes_to_int16(frame.data[4], frame.data[5]) / 1000.0;
-    last_seq_ = frame.data[6];
+    last_gx_ = (bytes_to_int16(frame.data[0], frame.data[1]) / 1000.0) * gyro_scale_to_rad_;
+    last_gy_ = (bytes_to_int16(frame.data[2], frame.data[3]) / 1000.0) * gyro_scale_to_rad_;
+    last_gz_ = (bytes_to_int16(frame.data[4], frame.data[5]) / 1000.0) * gyro_scale_to_rad_;
+    last_gyro_seq_ = seq;
+    have_gyro_ = true;
   }
 
   /**
@@ -278,12 +444,12 @@ private:
    * 数据比例：raw / 1000.0。
    * 当前代码默认解析结果可直接作为 roll、pitch、yaw 输入四元数转换。
    */
-  void update_orientation(const struct can_frame & frame)
+  void update_orientation(const struct can_frame & frame, uint8_t seq)
   {
-    last_roll_ = bytes_to_int16(frame.data[0], frame.data[1]) / 1000.0;
-    last_pitch_ = bytes_to_int16(frame.data[2], frame.data[3]) / 1000.0;
-    last_yaw_ = bytes_to_int16(frame.data[4], frame.data[5]) / 1000.0;
-    last_seq_ = frame.data[6];
+    last_roll_ = (bytes_to_int16(frame.data[0], frame.data[1]) / 1000.0) * orientation_scale_to_rad_;
+    last_pitch_ = (bytes_to_int16(frame.data[2], frame.data[3]) / 1000.0) * orientation_scale_to_rad_;
+    last_yaw_ = (bytes_to_int16(frame.data[4], frame.data[5]) / 1000.0) * orientation_scale_to_rad_;
+    last_orientation_seq_ = seq;
   }
 
   /**
@@ -292,20 +458,26 @@ private:
    * 将最近一次解析到的姿态、角速度和线加速度填充到
    * sensor_msgs::msg::Imu 消息中并发布。
    */
-  void publish_imu()
+  void publish_imu(uint8_t seq, uint8_t status_flags)
   {
     auto msg = sensor_msgs::msg::Imu();
     msg.header.stamp = now();
     msg.header.frame_id = frame_id_;
+    last_seq_ = seq;
+    last_status_flags_ = status_flags;
 
-    // 将 RPY 姿态角转换为四元数。
-    tf2::Quaternion q;
-    q.setRPY(last_roll_, last_pitch_, last_yaw_);
+    if (publish_orientation_) {
+      // 将 RPY 姿态角转换为四元数。无磁力计时 yaw 会漂，默认不要用于定位融合。
+      tf2::Quaternion q;
+      q.setRPY(last_roll_, last_pitch_, last_yaw_);
 
-    msg.orientation.x = q.x();
-    msg.orientation.y = q.y();
-    msg.orientation.z = q.z();
-    msg.orientation.w = q.w();
+      msg.orientation.x = q.x();
+      msg.orientation.y = q.y();
+      msg.orientation.z = q.z();
+      msg.orientation.w = q.w();
+    } else {
+      msg.orientation.w = 1.0;
+    }
 
     msg.angular_velocity.x = last_gx_;
     msg.angular_velocity.y = last_gy_;
@@ -322,10 +494,15 @@ private:
       msg.linear_acceleration_covariance[i] = 0.0;
     }
 
-    // 设置对角线协方差估计值。
-    msg.orientation_covariance[0] = 0.05;
-    msg.orientation_covariance[4] = 0.05;
-    msg.orientation_covariance[8] = 0.1;
+    if (publish_orientation_) {
+      // 设置对角线协方差估计值。
+      msg.orientation_covariance[0] = 0.05;
+      msg.orientation_covariance[4] = 0.05;
+      msg.orientation_covariance[8] = 0.1;
+    } else {
+      // sensor_msgs/Imu 约定：orientation_covariance[0] = -1 表示没有姿态估计。
+      msg.orientation_covariance[0] = -1.0;
+    }
 
     msg.angular_velocity_covariance[0] = 0.01;
     msg.angular_velocity_covariance[4] = 0.01;
@@ -365,8 +542,32 @@ private:
   double last_pitch_{0.0};
   double last_yaw_{0.0};
 
+  // 是否将下位机欧拉角发布为 orientation。默认关闭，避免 yaw 漂移被当成绝对航向。
+  bool publish_orientation_{false};
+
+  // 是否要求下位机标记 IMU 已完成校准后才发布数据。
+  bool require_calibrated_{false};
+
+  // 将下位机单位转换为 ROS IMU 消息使用的 rad/s 和 rad。
+  double gyro_scale_to_rad_{1.0};
+  double orientation_scale_to_rad_{1.0};
+
   // 最近一次接收到的数据帧序号。
   uint8_t last_seq_{0};
+  uint8_t last_accel_seq_{0};
+  uint8_t last_gyro_seq_{0};
+  uint8_t last_orientation_seq_{0};
+  bool have_accel_{false};
+  bool have_gyro_{false};
+
+  // 最近一次接收到的状态帧。
+  uint8_t last_status_seq_{0};
+  uint8_t last_status_flags_{0};
+  uint8_t last_error_{0};
+  uint8_t last_consecutive_failures_{0};
+  uint8_t last_read_fail_count_lsb_{0};
+  uint8_t last_recovery_count_lsb_{0};
+  uint16_t last_update_ms_lsb_{0};
 };
 
 /**

@@ -45,6 +45,7 @@ sudo apt install \
   ros-humble-ros2-control \
   ros-humble-ros2-controllers \
   ros-humble-gazebo-ros2-control \
+  ros-humble-robot-localization \
   ros-humble-xacro \
   ros-humble-rviz2
 ```
@@ -189,6 +190,16 @@ ros2 launch robmini_navigation demo_real_navigation.launch.py
 ros2 launch robmini_navigation demo_real_navigation.launch.py \
   map_file:=room_mini/115_map.yaml
 ```
+
+启用轮速 odom + CAN IMU 的 EKF 融合：
+
+```bash
+ros2 launch robmini_navigation demo_real_navigation.launch.py \
+  use_ekf:=true \
+  can_interface:=can0
+```
+
+启用后底盘控制器不再发布 `odom -> base_link`，由 `robot_localization` 发布融合后的 TF，并输出 `/robmini/odometry/filtered`。IMU 默认只融合 `angular_velocity.z`，不使用会漂移的下位机 yaw 欧拉角。
 
 树莓派或车载主机无显示时，可只在远程电脑启动 RViz。远程显示和多机器人命名空间规则见 `NAMESPACE.md`。
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@file robmini_navigation.launch.py
+@file robot_bringup.launch.py
 @brief RobMini 机器人 Nav2 导航系统启动文件
 
 该 launch 文件用于启动 RobMini 机器人的 Nav2 导航相关节点，主要包括：
@@ -62,7 +62,19 @@ def _replace_placeholders(obj, replacements):
     return obj
 
 
-def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame):
+def _set_key_recursive(obj, key_name, value):
+    if isinstance(obj, dict):
+        for key, item in obj.items():
+            if key == key_name:
+                obj[key] = value
+            else:
+                _set_key_recursive(item, key_name, value)
+    elif isinstance(obj, list):
+        for item in obj:
+            _set_key_recursive(item, key_name, value)
+
+
+def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic):
     with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -101,6 +113,8 @@ def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame):
         "PathDist",
         "GoalDist",
     ])
+
+    _set_key_recursive(config, "odom_topic", odom_topic)
 
     fd, temp_path = tempfile.mkstemp(prefix="robmini_nav2_", suffix=".yaml")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -151,6 +165,9 @@ def _prepare_nodes(context, *args, **kwargs):
 
     use_sim_time = context.launch_configurations.get("use_sim_time", "false")
     use_sim_time_bool = _as_bool(use_sim_time)
+    use_ekf = context.launch_configurations.get("use_ekf", "false")
+    filtered_odom_topic = context.launch_configurations.get("filtered_odom_topic", "odometry/filtered").strip()
+    odom_topic = filtered_odom_topic if _as_bool(use_ekf) else "odom"
 
     try:
         initial_x = float(context.launch_configurations.get("initial_pose_x", "0.0"))
@@ -165,6 +182,7 @@ def _prepare_nodes(context, *args, **kwargs):
         namespace,
         tf_prefix,
         map_frame,
+        odom_topic,
     )
 
     map_file = context.launch_configurations.get("map_file", "room_mini/115_map.yaml")
@@ -270,5 +288,7 @@ def generate_launch_description():
         DeclareLaunchArgument("initial_pose_a", default_value="0.0"),
         DeclareLaunchArgument("use_rviz", default_value="false"),
         DeclareLaunchArgument("map_file", default_value="room_mini/115_map.yaml"),
+        DeclareLaunchArgument("use_ekf", default_value="false"),
+        DeclareLaunchArgument("filtered_odom_topic", default_value="odometry/filtered"),
         OpaqueFunction(function=_prepare_nodes),
     ])
