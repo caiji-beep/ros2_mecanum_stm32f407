@@ -99,11 +99,10 @@ def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic)
         "yaw": 0.0,
     })
 
-    follow_path = (
-        config.setdefault("controller_server", {})
-        .setdefault("ros__parameters", {})
-        .setdefault("FollowPath", {})
-    )
+    controller_params = config.setdefault("controller_server", {}).setdefault("ros__parameters", {})
+    controller_params["odom_topic"] = odom_topic
+
+    follow_path = controller_params.setdefault("FollowPath", {})
     follow_path.setdefault("critics", [
         "RotateToGoal",
         "Oscillation",

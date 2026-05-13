@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import tempfile
 import yaml
 
 from ament_index_python.packages import get_package_share_directory
@@ -38,7 +37,37 @@ def _replace_placeholders(obj, replacements):
     return obj
 
 
-def _write_ekf_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic, imu_topic):
+def _as_number(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _normalise_param_value(value):
+    if isinstance(value, list):
+        if not value:
+            return value
+
+        numbers = [_as_number(item) for item in value]
+        if all(number is not None for number in numbers):
+            return numbers
+
+        return [_normalise_param_value(item) for item in value]
+
+    if isinstance(value, dict):
+        return {key: _normalise_param_value(item) for key, item in value.items()}
+
+    return value
+
+
+def _load_ekf_params(template_path, namespace, tf_prefix, map_frame, odom_topic, imu_topic):
     with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -53,12 +82,7 @@ def _write_ekf_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic, 
     params = config.setdefault("ekf_filter_node", {}).setdefault("ros__parameters", {})
     params["odom0"] = odom_topic
     params["imu0"] = imu_topic
-
-    fd, temp_path = tempfile.mkstemp(prefix="robmini_ekf_", suffix=".yaml")
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        yaml.safe_dump(config, f, sort_keys=False)
-
-    return temp_path
+    return _normalise_param_value(params)
 
 
 def _prepare_node(context, *args, **kwargs):
@@ -84,7 +108,7 @@ def _prepare_node(context, *args, **kwargs):
     )
 
     pkg_share = get_package_share_directory("robmini_navigation")
-    ekf_yaml = _write_ekf_yaml(
+    ekf_params = _load_ekf_params(
         os.path.join(pkg_share, "config", "ekf_imu_odom.yaml"),
         namespace,
         tf_prefix,
@@ -100,7 +124,7 @@ def _prepare_node(context, *args, **kwargs):
             name="ekf_filter_node",
             namespace=namespace,
             output="screen",
-            parameters=[ekf_yaml, {"use_sim_time": _as_bool(use_sim_time)}],
+            parameters=[ekf_params, {"use_sim_time": _as_bool(use_sim_time)}],
             remappings=[
                 ("odometry/filtered", filtered_odom_topic),
                 ("tf", "/tf"),
