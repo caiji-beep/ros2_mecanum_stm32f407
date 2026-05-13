@@ -67,6 +67,29 @@ def _normalise_param_value(value):
     return value
 
 
+def _extract_ekf_params(config, namespace):
+    candidates = [
+        f"/{namespace}/ekf_filter_node" if namespace else "",
+        "ekf_filter_node",
+        "/ekf_filter_node",
+        "/**/ekf_filter_node",
+    ]
+
+    params = {}
+    for key in candidates:
+        if not key or key not in config:
+            continue
+
+        node_config = config.get(key) or {}
+        if isinstance(node_config, dict):
+            params.update(node_config.get("ros__parameters", {}))
+
+    if not params and isinstance(config.get("ros__parameters"), dict):
+        params.update(config["ros__parameters"])
+
+    return params
+
+
 def _load_ekf_params(template_path, namespace, tf_prefix, map_frame, odom_topic, imu_topic):
     with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
@@ -79,7 +102,7 @@ def _load_ekf_params(template_path, namespace, tf_prefix, map_frame, odom_topic,
         "${map_frame}": map_frame,
     })
 
-    params = config.setdefault("ekf_filter_node", {}).setdefault("ros__parameters", {})
+    params = _extract_ekf_params(config, namespace)
     params["odom0"] = odom_topic
     params["imu0"] = imu_topic
     return _normalise_param_value(params)
