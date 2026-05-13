@@ -50,13 +50,42 @@ def _write_ekf_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic, 
         "${map_frame}": map_frame,
     })
 
-    params = config.setdefault("ekf_filter_node", {}).setdefault("ros__parameters", {})
-    params["odom0"] = odom_topic
-    params["imu0"] = imu_topic
+    # 取出原始 EKF 参数。兼容几种可能的 YAML 顶层写法。
+    ekf_params = {}
+
+    for key in [
+        "ekf_filter_node",
+        "/ekf_filter_node",
+        "/**/ekf_filter_node",
+        f"/{namespace}/ekf_filter_node" if namespace else "/ekf_filter_node",
+    ]:
+        if key in config:
+            node_config = config.pop(key)
+            ekf_params.update(node_config.get("ros__parameters", {}))
+
+    # 如果上面没有取到，兜底创建空参数。
+    if not ekf_params:
+        ekf_params = {}
+
+    # 强制写入实际运行的完整节点名。
+    # 你的节点是 namespace=robmini, name=ekf_filter_node，
+    # 所以完整节点名是 /robmini/ekf_filter_node。
+    node_key = f"/{namespace}/ekf_filter_node" if namespace else "/ekf_filter_node"
+
+    ekf_params["odom0"] = odom_topic
+    ekf_params["imu0"] = imu_topic
+
+    config = {
+        node_key: {
+            "ros__parameters": ekf_params
+        }
+    }
 
     fd, temp_path = tempfile.mkstemp(prefix="robmini_ekf_", suffix=".yaml")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, sort_keys=False)
+
+    print(f"[ekf_odom.launch.py] Generated EKF yaml: {temp_path}")
 
     return temp_path
 
