@@ -156,4 +156,9 @@ ros2 run rviz2 rviz2 \
   --ros-args -r __ns:=/robmini -p use_sim_time:=false
 ```
 
+ros2 run rviz2 rviz2 \
+  -d /home/lsz/robotmini_ws/install/robmini_navigation/share/robmini_navigation/rviz/nav2_light.rviz \
+  --ros-args -r __ns:=/robmini -p use_sim_time:=false
+
+
 非默认 namespace 时，优先使用对应场景的 demo launch 自带 RViz 配置；手动打开 RViz 时，需要同步修改 Fixed Frame、LaserScan、RobotModel、Nav2 Goal 等显示项和工具 Topic。

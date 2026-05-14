@@ -55,6 +55,7 @@ public:
     declare_parameter<std::string>("gyro_unit", "rad_per_s");
     declare_parameter<std::string>("orientation_unit", "rad");
     declare_parameter<bool>("require_calibrated", false);
+    declare_parameter<double>("publish_rate_hz", 50.0);
 
     const auto if_name = get_parameter("interface").as_string();
     const auto imu_topic = get_parameter("imu_topic").as_string();
@@ -63,6 +64,10 @@ public:
     gyro_scale_to_rad_ = unit_scale_to_rad(get_parameter("gyro_unit").as_string(), "gyro_unit");
     orientation_scale_to_rad_ =
       unit_scale_to_rad(get_parameter("orientation_unit").as_string(), "orientation_unit");
+    const auto publish_rate_hz = get_parameter("publish_rate_hz").as_double();
+    if (publish_rate_hz > 0.0) {
+      publish_period_ = rclcpp::Duration::from_seconds(1.0 / publish_rate_hz);
+    }
 
     // 若未显式指定 frame_id，则根据 tf_prefix 生成默认 IMU 坐标系。
     frame_id_ = get_parameter("frame_id").as_string();
@@ -82,9 +87,9 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "CAN IMU listening on %s, publishing '%s' with frame_id '%s', publish_orientation=%s.",
+      "CAN IMU listening on %s, publishing '%s' with frame_id '%s', publish_orientation=%s, max_rate=%.1fHz.",
       if_name.c_str(), imu_topic.c_str(), frame_id_.c_str(),
-      publish_orientation_ ? "true" : "false");
+      publish_orientation_ ? "true" : "false", publish_rate_hz);
   }
 
   /**
@@ -460,9 +465,19 @@ private:
    */
   void publish_imu(uint8_t seq, uint8_t status_flags)
   {
+    const auto stamp = now();
+    if (
+      publish_period_.nanoseconds() > 0 &&
+      last_publish_time_.nanoseconds() > 0 &&
+      stamp - last_publish_time_ < publish_period_)
+    {
+      return;
+    }
+
     auto msg = sensor_msgs::msg::Imu();
-    msg.header.stamp = now();
+    msg.header.stamp = stamp;
     msg.header.frame_id = frame_id_;
+    last_publish_time_ = stamp;
     last_seq_ = seq;
     last_status_flags_ = status_flags;
 
@@ -520,6 +535,10 @@ private:
 
   // CAN 轮询定时器。
   rclcpp::TimerBase::SharedPtr timer_;
+
+  // IMU 发布限频，避免高频 CAN 数据在低性能主机上压垮 EKF 和 DDS。
+  rclcpp::Duration publish_period_{0, 0};
+  rclcpp::Time last_publish_time_{0, 0, RCL_ROS_TIME};
 
   // IMU 消息发布器。
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;

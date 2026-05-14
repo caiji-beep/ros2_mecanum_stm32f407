@@ -55,6 +55,9 @@ def _prepare_node(context, *args, **kwargs):
                 "require_calibrated": _as_bool(
                     context.launch_configurations.get("require_calibrated", "false")
                 ),
+                "publish_rate_hz": float(
+                    context.launch_configurations.get("publish_rate_hz", "50.0")
+                ),
             }],
         )
     ]
@@ -72,5 +75,6 @@ def generate_launch_description():
         DeclareLaunchArgument("gyro_unit", default_value="rad_per_s"),
         DeclareLaunchArgument("orientation_unit", default_value="rad"),
         DeclareLaunchArgument("require_calibrated", default_value="false"),
+        DeclareLaunchArgument("publish_rate_hz", default_value="50.0"),
         OpaqueFunction(function=_prepare_node),
     ])

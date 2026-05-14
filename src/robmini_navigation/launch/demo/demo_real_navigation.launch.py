@@ -45,6 +45,9 @@ def generate_launch_description():
     publish_imu_orientation = LaunchConfiguration("publish_imu_orientation")
     imu_gyro_unit = LaunchConfiguration("imu_gyro_unit")
     imu_orientation_unit = LaunchConfiguration("imu_orientation_unit")
+    imu_publish_rate_hz = LaunchConfiguration("imu_publish_rate_hz")
+    low_load_nav2 = LaunchConfiguration("low_load_nav2")
+    low_load_rviz = LaunchConfiguration("low_load_rviz")
 
     # 获取功能包 share 路径。
     pkg_can = get_package_share_directory("can_socket_demo")
@@ -92,6 +95,7 @@ def generate_launch_description():
             "publish_orientation": publish_imu_orientation,
             "gyro_unit": imu_gyro_unit,
             "orientation_unit": imu_orientation_unit,
+            "publish_rate_hz": imu_publish_rate_hz,
         }.items(),
     )
 
@@ -128,6 +132,8 @@ def generate_launch_description():
             "map_file": map_file,
             "use_ekf": use_ekf,
             "filtered_odom_topic": filtered_odom_topic,
+            "low_load_nav2": low_load_nav2,
+            "low_load_rviz": low_load_rviz,
         }.items(),
     )
 
@@ -205,6 +211,18 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "imu_orientation_unit",
                 default_value="rad",
+            ),
+            DeclareLaunchArgument(
+                "imu_publish_rate_hz",
+                default_value="50.0",
+            ),
+            DeclareLaunchArgument(
+                "low_load_nav2",
+                default_value="auto",
+            ),
+            DeclareLaunchArgument(
+                "low_load_rviz",
+                default_value="auto",
             ),
 
             # 先启动机器人底层。

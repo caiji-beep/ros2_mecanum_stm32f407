@@ -38,6 +38,13 @@ def _as_bool(value):
     return str(value).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _as_auto_bool(value, auto_value):
+    text = str(value).strip().lower()
+    if text in ("", "auto"):
+        return bool(auto_value)
+    return _as_bool(text)
+
+
 def _clean_namespace(value):
     value = str(value or "").strip()
     if value == "/":
@@ -74,7 +81,76 @@ def _set_key_recursive(obj, key_name, value):
             _set_key_recursive(item, key_name, value)
 
 
-def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic):
+def _nested_params(config, *keys):
+    node = config
+    for key in keys:
+        if not isinstance(node, dict):
+            return {}
+        node = node.setdefault(key, {})
+    return node if isinstance(node, dict) else {}
+
+
+def _apply_low_load_nav2(config):
+    amcl = _nested_params(config, "amcl", "ros__parameters")
+    amcl.update({
+        "max_beams": 40,
+        "min_particles": 500,
+        "max_particles": 2000,
+        "resample_interval": 2,
+    })
+
+    bt = _nested_params(config, "bt_navigator", "ros__parameters")
+    bt["bt_loop_duration"] = 20
+
+    controller = _nested_params(config, "controller_server", "ros__parameters")
+    controller["controller_frequency"] = 10.0
+
+    follow_path = controller.setdefault("FollowPath", {})
+    follow_path.update({
+        "max_vel_theta": 0.65,
+        "max_speed_theta": 0.65,
+        "acc_lim_x": 0.8,
+        "acc_lim_theta": 1.4,
+        "decel_lim_x": -0.8,
+        "decel_lim_theta": -1.4,
+        "vx_samples": 12,
+        "vtheta_samples": 16,
+        "sim_time": 1.2,
+        "transform_tolerance": 0.3,
+    })
+
+    local_costmap = _nested_params(config, "local_costmap", "local_costmap", "ros__parameters")
+    local_costmap.update({
+        "update_frequency": 5.0,
+        "publish_frequency": 2.0,
+        "always_send_full_costmap": False,
+    })
+
+    global_costmap = _nested_params(config, "global_costmap", "global_costmap", "ros__parameters")
+    global_costmap.update({
+        "update_frequency": 1.0,
+        "publish_frequency": 0.5,
+        "always_send_full_costmap": False,
+    })
+
+    behavior = _nested_params(config, "behavior_server", "ros__parameters")
+    behavior["cycle_frequency"] = 5.0
+
+    waypoint = _nested_params(config, "waypoint_follower", "ros__parameters")
+    waypoint["loop_rate"] = 10
+
+    velocity_smoother = _nested_params(config, "velocity_smoother", "ros__parameters")
+    velocity_smoother.update({
+        "smoothing_frequency": 10.0,
+        "max_velocity": [0.22, 0.0, 0.65],
+        "min_velocity": [-0.11, 0.0, -0.65],
+        "max_accel": [0.8, 0.0, 1.4],
+        "max_decel": [-0.8, 0.0, -1.4],
+        "odom_duration": 0.3,
+    })
+
+
+def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic, low_load_nav2):
     with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -115,6 +191,9 @@ def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic)
 
     _set_key_recursive(config, "odom_topic", odom_topic)
 
+    if low_load_nav2:
+        _apply_low_load_nav2(config)
+
     fd, temp_path = tempfile.mkstemp(prefix="robmini_nav2_", suffix=".yaml")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, sort_keys=False)
@@ -127,7 +206,46 @@ def _write_nav2_yaml(template_path, namespace, tf_prefix, map_frame, odom_topic)
     return temp_path, direct_temp_path
 
 
-def _write_rviz_config(template_path, namespace, tf_prefix, map_frame):
+def _set_rviz_display_enabled(display, enabled):
+    display["Enabled"] = enabled
+    display["Value"] = enabled
+
+
+def _apply_low_load_rviz(data):
+    root = data.get("Visualization Manager", {})
+    root.setdefault("Global Options", {})["Frame Rate"] = 10
+
+    disabled_names = {
+        "TF",
+        "LaserScan",
+        "Amcl Particle Swarm",
+        "Global Costmap",
+        "Local Costmap",
+        "Polygon",
+        "MarkerArray",
+    }
+
+    def visit(displays):
+        for display in displays or []:
+            name = display.get("Name", "")
+            display_class = display.get("Class", "")
+
+            if name == "RobotModel":
+                display["Update Interval"] = 0.2
+
+            if name in disabled_names or display_class == "rviz_default_plugins/TF":
+                _set_rviz_display_enabled(display, False)
+
+            if display_class == "rviz_default_plugins/LaserScan":
+                _set_rviz_display_enabled(display, False)
+
+            visit(display.get("Displays", []))
+
+    visit(root.get("Displays", []))
+    return data
+
+
+def _write_rviz_config(template_path, namespace, tf_prefix, map_frame, low_load_rviz):
     with open(template_path, "r", encoding="utf-8") as f:
         text = f.read()
 
@@ -141,6 +259,9 @@ def _write_rviz_config(template_path, namespace, tf_prefix, map_frame):
         text = text.replace(f"Fixed Frame: {default_map_frame}", f"Fixed Frame: {map_frame}")
         text = text.replace(f"        {default_map_frame}:", f"        {map_frame}:")
         text = text.replace(f"      {default_map_frame}:", f"      {map_frame}:")
+
+    if low_load_rviz:
+        text = yaml.safe_dump(_apply_low_load_rviz(yaml.safe_load(text)), sort_keys=False)
 
     fd, temp_path = tempfile.mkstemp(prefix="robmini_rviz_", suffix=".rviz")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -165,8 +286,17 @@ def _prepare_nodes(context, *args, **kwargs):
     use_sim_time = context.launch_configurations.get("use_sim_time", "false")
     use_sim_time_bool = _as_bool(use_sim_time)
     use_ekf = context.launch_configurations.get("use_ekf", "false")
+    use_ekf_bool = _as_bool(use_ekf)
     filtered_odom_topic = context.launch_configurations.get("filtered_odom_topic", "odometry/filtered").strip()
-    odom_topic = filtered_odom_topic if _as_bool(use_ekf) else "odom"
+    odom_topic = filtered_odom_topic if use_ekf_bool else "odom"
+    low_load_nav2 = _as_auto_bool(
+        context.launch_configurations.get("low_load_nav2", "auto"),
+        use_ekf_bool,
+    )
+    low_load_rviz = _as_auto_bool(
+        context.launch_configurations.get("low_load_rviz", "auto"),
+        low_load_nav2,
+    )
 
     try:
         initial_x = float(context.launch_configurations.get("initial_pose_x", "0.0"))
@@ -182,6 +312,7 @@ def _prepare_nodes(context, *args, **kwargs):
         tf_prefix,
         map_frame,
         odom_topic,
+        low_load_nav2,
     )
 
     map_file = context.launch_configurations.get("map_file", "room_mini/115_map.yaml")
@@ -195,6 +326,7 @@ def _prepare_nodes(context, *args, **kwargs):
         namespace,
         tf_prefix,
         map_frame,
+        low_load_rviz,
     )
 
     return [
@@ -289,5 +421,7 @@ def generate_launch_description():
         DeclareLaunchArgument("map_file", default_value="room_mini/115_map.yaml"),
         DeclareLaunchArgument("use_ekf", default_value="false"),
         DeclareLaunchArgument("filtered_odom_topic", default_value="odometry/filtered"),
+        DeclareLaunchArgument("low_load_nav2", default_value="auto"),
+        DeclareLaunchArgument("low_load_rviz", default_value="auto"),
         OpaqueFunction(function=_prepare_nodes),
     ])
