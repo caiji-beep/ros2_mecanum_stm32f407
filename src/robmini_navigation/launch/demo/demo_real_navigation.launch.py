@@ -236,21 +236,21 @@ def generate_launch_description():
 
             # 延时启动雷达，等待底层节点初始化完成。
             TimerAction(
-                period=3.0,
+                period=6.0,
                 actions=[lidar_launch],
             ),
             TimerAction(
-                period=3.0,
+                period=6.0,
                 actions=[can_imu_launch],
             ),
             TimerAction(
-                period=4.0,
+                period=8.0,
                 actions=[ekf_launch],
             ),
 
             # 延时启动导航，等待机器人状态和雷达数据基本就绪。
             TimerAction(
-                period=5.0,
+                period=10.0,
                 actions=[nav_bringup_launch],
             ),
         ]

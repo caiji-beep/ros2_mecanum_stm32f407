@@ -168,13 +168,17 @@ def _prepare_nodes(context, *args, **kwargs):
                         "joint_state_broadcaster",
                         "--controller-manager",
                         controller_manager_path,
+                        "--controller-manager-timeout",
+                        "20",
+                        "--service-call-timeout",
+                        "20",
                     ],
                     output="screen",
                 )
             ],
         ),
         TimerAction(
-            period=3.0,
+            period=5.0,
             actions=[
                 Node(
                     package="controller_manager",
@@ -183,6 +187,10 @@ def _prepare_nodes(context, *args, **kwargs):
                         "mecanum_drive_controller",
                         "--controller-manager",
                         controller_manager_path,
+                        "--controller-manager-timeout",
+                        "20",
+                        "--service-call-timeout",
+                        "20",
                     ],
                     output="screen",
                 )
