@@ -22,8 +22,7 @@
             "*.c++": "cpp",
             "*.cpp": "cpp",
             "*.cxx": "cpp",
-            "*.cc": "cpp",
-            "IMU.H": "cpp"
+            "*.cc": "cpp"
         },
         "[yaml]": {
             "editor.insertSpaces": true,
