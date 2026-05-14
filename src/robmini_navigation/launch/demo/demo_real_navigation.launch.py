@@ -46,6 +46,7 @@ def generate_launch_description():
     imu_gyro_unit = LaunchConfiguration("imu_gyro_unit")
     imu_orientation_unit = LaunchConfiguration("imu_orientation_unit")
     imu_publish_rate_hz = LaunchConfiguration("imu_publish_rate_hz")
+    fuse_imu_yaw_rate = LaunchConfiguration("fuse_imu_yaw_rate")
     low_load_nav2 = LaunchConfiguration("low_load_nav2")
     low_load_rviz = LaunchConfiguration("low_load_rviz")
 
@@ -113,6 +114,7 @@ def generate_launch_description():
             "odom_topic": "odom",
             "imu_topic": imu_topic,
             "filtered_odom_topic": filtered_odom_topic,
+            "fuse_imu_yaw_rate": fuse_imu_yaw_rate,
         }.items(),
     )
 
@@ -215,6 +217,10 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "imu_publish_rate_hz",
                 default_value="50.0",
+            ),
+            DeclareLaunchArgument(
+                "fuse_imu_yaw_rate",
+                default_value="true",
             ),
             DeclareLaunchArgument(
                 "low_load_nav2",

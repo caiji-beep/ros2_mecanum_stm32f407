@@ -90,7 +90,15 @@ def _extract_ekf_params(config, namespace):
     return params
 
 
-def _load_ekf_params(template_path, namespace, tf_prefix, map_frame, odom_topic, imu_topic):
+def _load_ekf_params(
+    template_path,
+    namespace,
+    tf_prefix,
+    map_frame,
+    odom_topic,
+    imu_topic,
+    fuse_imu_yaw_rate,
+):
     with open(template_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -104,7 +112,12 @@ def _load_ekf_params(template_path, namespace, tf_prefix, map_frame, odom_topic,
 
     params = _extract_ekf_params(config, namespace)
     params["odom0"] = odom_topic
-    params["imu0"] = imu_topic
+    if fuse_imu_yaw_rate:
+        params["imu0"] = imu_topic
+    else:
+        for key in list(params):
+            if key.startswith("imu0"):
+                params.pop(key)
     return _normalise_param_value(params)
 
 
@@ -129,6 +142,9 @@ def _prepare_node(context, *args, **kwargs):
         context.launch_configurations.get("filtered_odom_topic", "odometry/filtered").strip()
         or "odometry/filtered"
     )
+    fuse_imu_yaw_rate = _as_bool(
+        context.launch_configurations.get("fuse_imu_yaw_rate", "true")
+    )
 
     pkg_share = get_package_share_directory("robmini_navigation")
     ekf_params = _load_ekf_params(
@@ -138,6 +154,7 @@ def _prepare_node(context, *args, **kwargs):
         map_frame,
         odom_topic,
         imu_topic,
+        fuse_imu_yaw_rate,
     )
 
     return [
@@ -167,5 +184,6 @@ def generate_launch_description():
         DeclareLaunchArgument("odom_topic", default_value="odom"),
         DeclareLaunchArgument("imu_topic", default_value="imu/data_raw"),
         DeclareLaunchArgument("filtered_odom_topic", default_value="odometry/filtered"),
+        DeclareLaunchArgument("fuse_imu_yaw_rate", default_value="true"),
         OpaqueFunction(function=_prepare_node),
     ])
