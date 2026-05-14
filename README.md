@@ -199,7 +199,28 @@ ros2 launch robmini_navigation demo_real_navigation.launch.py \
   can_interface:=can0
 ```
 
-启用后底盘控制器不再发布 `odom -> base_link`，由 `robot_localization` 发布融合后的 TF，并输出 `/robmini/odometry/filtered`。IMU 默认只融合 `angular_velocity.z`，不使用会漂移的下位机 yaw 欧拉角。
+只验证 EKF 链路、不融合 IMU 时：
+
+```bash
+ros2 launch robmini_navigation demo_real_navigation.launch.py \
+  use_ekf:=true \
+  use_rviz:=false \
+  fuse_imu_yaw_rate:=false
+```
+
+启用后底盘控制器不再发布 `odom -> base_link`，由 `robot_localization` 发布融合后的 TF，并输出 `/robmini/odometry/filtered`。当前 EKF 融合轮速 odom 的 `x/y/yaw` 和 `vx/vy/vyaw`，开启 `fuse_imu_yaw_rate:=true` 时再额外融合 CAN IMU 的 `angular_velocity.z`。不使用无磁力计约束的下位机 yaw 欧拉角。
+
+检查融合链路：
+
+```bash
+ros2 topic hz /robmini/odom
+ros2 topic hz /robmini/odometry/filtered
+ros2 param get /robmini/ekf_filter_node odom0_config
+ros2 param get /robmini/ekf_filter_node imu0_config
+ros2 run tf2_ros tf2_echo robmini/odom robmini/base_link
+```
+
+相关问题原因和调试流程见 `src/robmini_navigation/README.md` 的“真机 EKF 融合”和“常见问题”。
 
 树莓派或车载主机无显示时，可只在远程电脑启动 RViz。远程显示和多机器人命名空间规则见 `NAMESPACE.md`。
 
