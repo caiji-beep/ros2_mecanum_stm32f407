@@ -1,226 +1,30 @@
-# =========================================================
-# STM32 / Keil5 / VSCode-EIDE Project .gitignore
-# =========================================================
+# Keil build output
+**/Objects/
+**/Listings/
+**/*.o
+**/*.d
+**/*.crf
+**/*.axf
+**/*.map
+**/*.htm
+**/*.lst
+**/*.lnp
+**/*.dep
 
+# Keil user local files
+**/*.uvgui.*
+**/*.uvoptx
 
-# ---------------------------------------------------------
-# Keil / ARMCC build output folders
-# ---------------------------------------------------------
-OBJ/
-obj/
-Objects/
-objects/
-Listings/
-listings/
-Debug/
-debug/
-Release/
-release/
-Build/
-build/
-.out/
-Output/
-output/
+# EIDE output
+**/build/
+**/.eide/targets/*/build/
 
+# Binary output
+**/*.bin
+**/*.hex
 
-# ---------------------------------------------------------
-# Keil generated object / dependency / list / map files
-# ---------------------------------------------------------
-*.o
-*.obj
-*.d
-*.dep
-*.crf
-*.lst
-*.map
-*.lnp
-*.htm
-*.html
-*.iex
-*.tra
-*.sct.bak
-
-
-# ---------------------------------------------------------
-# Keil generated executable / firmware images
-# 如果你想把最终 hex/bin 提交到仓库，可以把 *.hex / *.bin 删掉
-# ---------------------------------------------------------
-*.axf
-*.elf
-*.hex
-*.bin
-*.srec
-*.out
-
-
-# ---------------------------------------------------------
-# Keil user-specific files
-# ---------------------------------------------------------
-*.uvguix.*
-*.uvgui.*
-*.uvgui_*
-*.uvopt
-*.uvoptx.bak
-*.uvprojx.bak
-*.uvmpw
-*.uvmpw.bak
-*.uv2.bak
-*.uvproj.bak
-*.uvopt.bak
-
-
-# ---------------------------------------------------------
-# Keil temporary / backup files
-# ---------------------------------------------------------
-*.bak
-*.orig
-*.tmp
-*.temp
-*.log
-*.plg
-*.i
-*.ii
-*.s
-*.src
-
-
-# ---------------------------------------------------------
-# Keep important Keil project files
-# ---------------------------------------------------------
-!*.uvprojx
-!*.uvoptx
-
-
-# ---------------------------------------------------------
-# VSCode
-# ---------------------------------------------------------
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-
-# ---------------------------------------------------------
-# EIDE / Embedded IDE temporary files
-# 注意：不要无脑忽略整个 EIDE/ 文件夹，里面可能有工程配置
-# ---------------------------------------------------------
-.eide/build/
-.eide/log/
-.eide/tmp/
-.eide/.cache/
-.eide/obj/
-.eide/out/
-
-EIDE/build/
-EIDE/log/
-EIDE/tmp/
-EIDE/.cache/
-EIDE/obj/
-EIDE/out/
-
-
-# ---------------------------------------------------------
-# CMSIS-Pack / RTE generated cache
-# ---------------------------------------------------------
-RTE/Device/*/RTE_Components.h.bak
-*.pdsc
-*.pack
-
-
-# ---------------------------------------------------------
-# CMake / Ninja / Make temporary files
-# 如果以后用 CMake 构建，也能兼容
-# ---------------------------------------------------------
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-build.ninja
-.ninja_deps
-.ninja_log
-compile_commands.json
-
-
-# ---------------------------------------------------------
-# Python cache
-# ---------------------------------------------------------
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-
-# ---------------------------------------------------------
-# Windows / macOS system files
-# ---------------------------------------------------------
-Thumbs.db
-Desktop.ini
+# VSCode / OS
+.vscode/.browse.c_cpp.db*
+.vscode/ipch/
 .DS_Store
-
-
-# ---------------------------------------------------------
-# Editor temporary files
-# ---------------------------------------------------------
-*.swp
-*.swo
-*~
-.~*
-*.user
-*.userosscache
-*.suo
-*.VC.db
-*.VC.VC.opendb
-
-
-# ---------------------------------------------------------
-# Git conflict / patch temporary files
-# ---------------------------------------------------------
-*.rej
-*.patch
-*.diff
-
-
-# ---------------------------------------------------------
-# Do NOT ignore source folders
-# 这些目录是你的源码，必须提交
-# ---------------------------------------------------------
-!Drivers/
-!FreeRTOS/
-!FWLIB/
-!HARDWARE/
-!MyTasks/
-!SYSTEM/
-!USER/
-
-
-# dot files
-/.vscode/launch.json
-/.settings
-/.eide/log
-/.eide.usr.ctx.json
-
-# project out
-/build
-/bin
-/obj
-/out
-
-# eide template
-*.ept
-*.eide-template
-# dot files
-/.vscode/launch.json
-/.settings
-/.eide/log
-/.eide.usr.ctx.json
-
-# project out
-/build
-/bin
-/obj
-/out
-
-# eide template
-*.ept
-*.eide-template
+Thumbs.db
