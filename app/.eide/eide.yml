@@ -175,6 +175,7 @@ targets:
         - STM32F40_41xxx
         - USE_STDPERIPH_DRIVER
       incList:
+        - .
         - CORE
         - USER
         - FWLIB/inc
