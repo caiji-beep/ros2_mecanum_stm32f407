@@ -1,0 +1,53 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceFolder}/app",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "mecanum app: OpenOCD",
+            "servertype": "openocd",
+            "executable": "${workspaceFolder}/app/build/mecanum/mecanum.axf",
+            "armToolchainPath": "C:/Users/ksnc/.eide/tools/gcc_arm/bin",
+            "serverpath": "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+            "searchDir": [
+                "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/share/openocd/scripts"
+            ],
+            "runToEntryPoint": "main",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+            "loadFiles": [
+                "${workspaceFolder}/app/build/mecanum/mecanum.hex"
+            ],
+            "symbolFiles": [
+                "${workspaceFolder}/app/build/mecanum/mecanum.axf"
+            ]
+        },
+        {
+            "cwd": "${workspaceFolder}/bootloader",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Bootloader: OpenOCD",
+            "servertype": "openocd",
+            "executable": "${workspaceFolder}/bootloader/build/Bootloader/Bootloader.axf",
+            "armToolchainPath": "C:/Users/ksnc/.eide/tools/gcc_arm/bin",
+            "serverpath": "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+            "searchDir": [
+                "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/share/openocd/scripts"
+            ],
+            "runToEntryPoint": "main",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+            "loadFiles": [
+                "${workspaceFolder}/bootloader/build/Bootloader/Bootloader.hex"
+            ],
+            "symbolFiles": [
+                "${workspaceFolder}/bootloader/build/Bootloader/Bootloader.axf"
+            ]
+        }
+    ]
+}

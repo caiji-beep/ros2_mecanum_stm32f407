@@ -2,21 +2,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceFolder}",
             "type": "cortex-debug",
             "request": "launch",
             "name": "mecanum: OpenOCD",
             "servertype": "openocd",
+            "executable": "${workspaceFolder}/build/mecanum/mecanum.axf",
+            "armToolchainPath": "C:/Users/ksnc/.eide/tools/gcc_arm/bin",
+            "serverpath": "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+            "searchDir": [
+                "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/share/openocd/scripts"
+            ],
             "runToEntryPoint": "main",
             "configFiles": [
                 "interface/stlink.cfg",
                 "target/stm32f4x.cfg"
             ],
             "loadFiles": [
-                "build/mecanum/mecanum.hex"
+                "${workspaceFolder}/build/mecanum/mecanum.hex"
             ],
             "symbolFiles": [
-                "build/mecanum/mecanum.axf"
+                "${workspaceFolder}/build/mecanum/mecanum.axf"
             ]
         }
     ]
