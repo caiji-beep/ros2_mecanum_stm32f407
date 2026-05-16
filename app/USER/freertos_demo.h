@@ -12,6 +12,7 @@ extern QueueHandle_t gsem_OLED_handle;
 extern QueueSetHandle_t gqueueset_handle;
 extern TaskHandle_t gTelemetryTask_Handle;
 extern TaskHandle_t gIMUTask_Handle;
+extern TaskHandle_t gPowerTask_Handle;
 extern uint8_t g_key1_pressed;
 
 void freertos_start(void);

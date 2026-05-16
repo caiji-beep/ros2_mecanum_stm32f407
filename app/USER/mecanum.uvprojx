@@ -921,6 +921,16 @@
               <FilePath>..\MyTasks\IMU.h</FilePath>
             </File>
             <File>
+              <FileName>Power.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\MyTasks\Power.c</FilePath>
+            </File>
+            <File>
+              <FileName>Power.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\MyTasks\Power.h</FilePath>
+            </File>
+            <File>
               <FileName>Telemetry.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\MyTasks\Telemetry.c</FilePath>
@@ -975,6 +985,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\bsp_tick.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\bsp_adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_adc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\bsp_adc.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1004,6 +1024,16 @@
               <FileName>OLED_Font.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Drivers\OLED_Font.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_power.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\drv_power.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_power.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Drivers\drv_power.h</FilePath>
             </File>
           </Files>
         </Group>

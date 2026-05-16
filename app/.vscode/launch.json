@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "mecanum: OpenOCD",
+            "servertype": "openocd",
+            "runToEntryPoint": "main",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+            "loadFiles": [
+                "build/mecanum/mecanum.hex"
+            ],
+            "symbolFiles": [
+                "build/mecanum/mecanum.axf"
+            ]
+        }
+    ]
+}

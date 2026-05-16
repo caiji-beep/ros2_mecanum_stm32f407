@@ -141,6 +141,8 @@ virtualFolder:
         - path: MyTasks/Telemetry.h
         - path: MyTasks/Uart.c
         - path: MyTasks/Uart.h
+        - path: MyTasks/Power.c
+        - path: MyTasks/Power.h
       folders: []
     - name: BSP
       files:
@@ -150,6 +152,8 @@ virtualFolder:
         - path: BSP/bsp_exti.h
         - path: BSP/bsp_tick.c
         - path: BSP/bsp_tick.h
+        - path: BSP/bsp_adc.c
+        - path: BSP/bsp_adc.h
       folders: []
     - name: Drivers
       files:
@@ -158,6 +162,8 @@ virtualFolder:
         - path: Drivers/OLED.c
         - path: Drivers/OLED.h
         - path: Drivers/OLED_Font.h
+        - path: Drivers/drv_power.c
+        - path: Drivers/drv_power.h
       folders: []
     - name: Algorithm
       files:
@@ -287,8 +293,8 @@ targets:
               isChecked: true
               isStartup: true
               mem:
-                size: "0x80000"
-                startAddr: "0x8000000"
+                size: "0x30000"
+                startAddr: "0x8010000"
               tag: IROM
             - id: 2
               isChecked: false

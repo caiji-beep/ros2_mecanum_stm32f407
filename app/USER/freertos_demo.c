@@ -19,6 +19,8 @@
 #include "Can.h"
 #include "Key.h"
 #include "LED.h"
+#include "drv_power.h"
+#include "Power.h"
 
 /*启动任务的配置*/
 #define START_TASK_STK_SIZE 128 // 启动任务栈大小
@@ -55,6 +57,10 @@ void Telemetry_Task(void *pvParameters);
 #define IMU_PRIO 2
 TaskHandle_t gIMUTask_Handle;
 void IMU_Task(void *pvParameters);
+
+#define POWER_STK_SIZE 256
+#define POWER_PRIO 2
+TaskHandle_t gPowerTask_Handle;
 
 /*队列句柄*/
 QueueHandle_t gUart2RxQ = NULL;
@@ -104,6 +110,7 @@ static void BoardInit(void)
     Serial2_Init(); // 串口2
     Serial3_Init(); // 串口3
     CAN1_Init();
+    DrvPower_Init();
 
     Encoder_Init();
 
@@ -189,6 +196,13 @@ void start_task(void *pvParameters)
                 (void *)NULL,
                 (UBaseType_t)IMU_PRIO,
                 (TaskHandle_t *)&gIMUTask_Handle);
+
+    xTaskCreate((TaskFunction_t)Power_Task,
+                (char *)"Power_Task",
+                (configSTACK_DEPTH_TYPE)POWER_STK_SIZE,
+                (void *)NULL,
+                (UBaseType_t)POWER_PRIO,
+                (TaskHandle_t *)&gPowerTask_Handle);
 
     taskEXIT_CRITICAL(); // 退出临界区
     /*启动任务只需要执行一次即可，用完删除*/

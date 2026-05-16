@@ -2,7 +2,7 @@
  * @Author: caiji-beep 2978115384@qq.com
  * @Date: 2025-12-01 19:02:17
  * @LastEditors: caiji-beep 2978115384@qq.com
- * @LastEditTime: 2026-05-05 16:43:23
+ * @LastEditTime: 2026-05-15 21:22:26
  * @FilePath: \EIDEe:\STM32_Documents\PROJECT\ros2_mecanum\MyTasks\Display.c
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -14,6 +14,7 @@
 #include "semphr.h"
 #include "LED.h"
 #include "IMU.h"
+//#include "drv_power.h"
 
 extern QueueHandle_t gsem_OLED_handle;
 extern  uint8_t g_key1_pressed;
@@ -106,6 +107,8 @@ static void OLED_ShowIMUPage(void)
 
     // 标题（可选）
     OLED_ShowString(1,1,"IMU:");
+    //OLED_ShowNum(1,5,DrvPower_GetVinMv(),5);
+    OLED_ShowString(1,10,"mV");
 
     // 第2行 Roll
     OLED_ShowString(2,1,"R:");
