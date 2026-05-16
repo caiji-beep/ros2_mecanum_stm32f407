@@ -59,6 +59,20 @@ virtualFolder:
     - name: SYSTEM
       files: []
       folders: []
+    - name: Boot
+      files:
+        - path: Boot/boot_app.c
+        - path: Boot/boot_app.h
+        - path: Boot/boot_config.h
+        - path: Boot/boot_main.c
+        - path: Boot/boot_main.h
+      folders: []
+    - name: Drivers
+      files: []
+      folders: []
+    - name: BSP
+      files: []
+      folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -79,6 +93,9 @@ targets:
         - FWLIB/inc
         - .cmsis/include
         - USER/RTE/_Bootloader
+        - BSP
+        - Boot
+        - Drivers
       libList: []
     excludeList: []
     settings: {}
@@ -175,7 +192,7 @@ targets:
               isChecked: true
               isStartup: true
               mem:
-                size: "0x10000"
+                size: "0xC000"
                 startAddr: "0x8000000"
               tag: IROM
             - id: 2

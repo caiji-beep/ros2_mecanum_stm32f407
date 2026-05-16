@@ -134,11 +134,11 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>4099</DriverSelection>
+            <DriverSelection>4096</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -274,7 +274,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0xc000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\Boot;..\BSP;..\Drivers</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -589,6 +589,42 @@
         </Group>
         <Group>
           <GroupName>SYSTEM</GroupName>
+        </Group>
+        <Group>
+          <GroupName>Boot</GroupName>
+          <Files>
+            <File>
+              <FileName>boot_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Boot\boot_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>boot_app.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Boot\boot_app.h</FilePath>
+            </File>
+            <File>
+              <FileName>boot_config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Boot\boot_config.h</FilePath>
+            </File>
+            <File>
+              <FileName>boot_main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Boot\boot_main.c</FilePath>
+            </File>
+            <File>
+              <FileName>boot_main.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Boot\boot_main.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Drivers</GroupName>
+        </Group>
+        <Group>
+          <GroupName>BSP</GroupName>
         </Group>
       </Groups>
     </Target>
