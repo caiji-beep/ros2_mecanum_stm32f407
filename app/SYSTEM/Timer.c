@@ -19,6 +19,29 @@ extern TaskHandle_t gCtrlTask_Handle;
 volatile uint32_t g_tick10ms = 0;
 volatile uint32_t g_tim7_ms = 0;
 
+void TIM6_SetPeriodMs(uint16_t period_ms)
+{
+    uint32_t arr;
+
+    if (period_ms == 0U)
+    {
+        period_ms = 1U;
+    }
+
+    /* TIM6 PSC=8399 gives a 10 kHz counter clock, so one count is 0.1 ms. */
+    arr = ((uint32_t)period_ms * 10U) - 1U;
+    if (arr > 0xFFFFU)
+    {
+        arr = 0xFFFFU;
+    }
+
+    TIM_Cmd(TIM6, DISABLE);
+    TIM_SetAutoreload(TIM6, (uint16_t)arr);
+    TIM_SetCounter(TIM6, 0U);
+    TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
+    TIM_Cmd(TIM6, ENABLE);
+}
+
 void TIM6_Init(void)
 {
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);

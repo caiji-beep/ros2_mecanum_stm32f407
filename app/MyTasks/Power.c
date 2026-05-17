@@ -6,11 +6,12 @@
 #include "robot_state.h"
 
 #define POWER_SAMPLE_PERIOD_MS      211U
+#define POWER_IDLE_SAMPLE_PERIOD_MS 1000U
 
-#define POWER_WARN_ENTER_MV         10500U
-#define POWER_WARN_EXIT_MV          11400U
-#define POWER_CUTOFF_ENTER_MV       10500U
-#define POWER_EMERGENCY_ENTER_MV    9900U
+#define POWER_WARN_ENTER_MV         9900U
+#define POWER_WARN_EXIT_MV          10500U
+#define POWER_CUTOFF_ENTER_MV       9600U
+#define POWER_EMERGENCY_ENTER_MV    9300U
 #define POWER_ADC_FAULT_MAX_MV      1000U
 
 #define POWER_WARN_CONFIRM_COUNT    5U
@@ -163,7 +164,13 @@ void Power_Task(void *pvParameters)
 
     for (;;)
     {
-        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(POWER_SAMPLE_PERIOD_MS));
+        uint32_t sample_period_ms = (((g_robot_state == ROBOT_STATE_IDLE) ||
+                                      (g_robot_state == ROBOT_STATE_ERROR)) &&
+                                     (s_power_status == POWER_STATUS_NORMAL)) ?
+                                    POWER_IDLE_SAMPLE_PERIOD_MS :
+                                    POWER_SAMPLE_PERIOD_MS;
+
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(sample_period_ms));
 
         s_power_vin_mv = DrvPower_GetVinMv();
         Power_UpdateStatus(s_power_vin_mv);

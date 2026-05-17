@@ -33,6 +33,9 @@ extern volatile uint8_t Serial2_RXFlag;
 extern volatile uint16_t Serial3_RXData;
 extern volatile uint8_t Serial3_RXFlag;
 
+#define UART_ACTIVE_DRAIN_PERIOD_MS 5U
+#define UART_IDLE_DRAIN_PERIOD_MS   50U
+
 void Uart_Task(void *pvParameters)
 {
     QueueSetMemberHandle_t xActivatedMember;
@@ -42,8 +45,13 @@ void Uart_Task(void *pvParameters)
     // static int led = 0;
     while (1)
     {
+        TickType_t wait_ticks = pdMS_TO_TICKS(((g_robot_state == ROBOT_STATE_IDLE) ||
+                                               (g_robot_state == ROBOT_STATE_ERROR)) ?
+                                              UART_IDLE_DRAIN_PERIOD_MS :
+                                              UART_ACTIVE_DRAIN_PERIOD_MS);
+
         // Wait for UART queue activity; timeout also drains USART3 DMA.
-        xActivatedMember = xQueueSelectFromSet(gqueueset_handle, pdMS_TO_TICKS(5));
+        xActivatedMember = xQueueSelectFromSet(gqueueset_handle, wait_ticks);
         if (xActivatedMember == NULL)
         {
             Serial3_RxDmaDrain();

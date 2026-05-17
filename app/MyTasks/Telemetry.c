@@ -16,15 +16,24 @@
 #include "Can.h"
 #include "LED.h"
 #include "IMU.h"
+#include "robot_state.h"
+
+#define TELEMETRY_ACTIVE_PERIOD_MS 100U
+#define TELEMETRY_IDLE_PERIOD_MS   1000U
+
 TelemetryData_t g_telemetry_data;
 
 void Telemetry_Task(void *pvParameters)
 {
-    const TickType_t T = pdMS_TO_TICKS(100);
     TickType_t last = xTaskGetTickCount();
     for (;;)
     {
-        vTaskDelayUntil(&last, T); // 固定周期执行
+        TickType_t period = pdMS_TO_TICKS(((g_robot_state == ROBOT_STATE_IDLE) ||
+                                           (g_robot_state == ROBOT_STATE_ERROR)) ?
+                                          TELEMETRY_IDLE_PERIOD_MS :
+                                          TELEMETRY_ACTIVE_PERIOD_MS);
+
+        vTaskDelayUntil(&last, period); // 固定周期执行
         
         float wA = g_telemetry_data.wA;
         float wB = g_telemetry_data.wB;

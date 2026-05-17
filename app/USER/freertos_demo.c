@@ -256,3 +256,10 @@ void vApplicationMallocFailedHook(void)
     {
     }
 }
+
+void vApplicationIdleHook(void)
+{
+    __DSB();
+    __WFI();
+    __ISB();
+}

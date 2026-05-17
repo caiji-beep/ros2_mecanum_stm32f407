@@ -10,6 +10,10 @@
             "executable": "${workspaceFolder}/app/build/mecanum/mecanum.axf",
             "armToolchainPath": "C:/Users/ksnc/.eide/tools/gcc_arm/bin",
             "serverpath": "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 2
+            },
             "searchDir": [
                 "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/share/openocd/scripts"
             ],
@@ -34,6 +38,10 @@
             "executable": "${workspaceFolder}/bootloader/build/Bootloader/Bootloader.axf",
             "armToolchainPath": "C:/Users/ksnc/.eide/tools/gcc_arm/bin",
             "serverpath": "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 2
+            },
             "searchDir": [
                 "C:/Users/ksnc/.eide/tools/openocd_7a1adfbec_mingw32/share/openocd/scripts"
             ],

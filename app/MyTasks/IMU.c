@@ -7,6 +7,7 @@
 #include "bsp_tick.h"
 #include "bsp_exti.h"
 #include "SPL_Delay.h"
+#include "robot_state.h"
 
 #define IMU_GYRO_CALIB_SAMPLES 300U
 #define IMU_GYRO_CALIB_WARMUP_SAMPLES 20U
@@ -21,6 +22,8 @@
 #define IMU_ERR_INT_STATUS 4U
 #define IMU_ERR_NOT_READY 5U
 #define IMU_ERR_READ_DATA 6U
+
+#define IMU_IDLE_PERIOD_MS 250U
 
 static Soft_I2C_Bus icm_i2c_bus = {
     .port = GPIOB,
@@ -249,6 +252,17 @@ void IMU_Task(void *pvParameters)
     for (;;)
     {
         uint32_t notified = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
+
+        if (g_robot_state == ROBOT_STATE_IDLE || g_robot_state == ROBOT_STATE_ERROR)
+        {
+            uint8_t status = 0U;
+
+            ICM20948_DataReadyFlag = 0U;
+            (void)ICM20948_ReadIntStatus1(&status);
+            vTaskDelay(pdMS_TO_TICKS(IMU_IDLE_PERIOD_MS));
+            last_tick = (float)BSP_Tick_GetUs() / 1000000.0f;
+            continue;
+        }
 
         if (notified > 0U)
         {

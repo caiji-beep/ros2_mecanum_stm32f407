@@ -203,6 +203,13 @@ void Ctrl_Task(void *pvParameters)
         //    pdTRUE: 读取同时清零计数
         //    portMAX_DELAY: 一直等
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // 等待定时器通知
+
+        if (g_robot_state == ROBOT_STATE_IDLE || g_robot_state == ROBOT_STATE_ERROR)
+        {
+            IWDG_Feed();
+            continue;
+        }
+
         Encoder_Sample(SC_Ts);                   // 10ms 编码器采样
         if (g_mode == MODE_VEL)
         {

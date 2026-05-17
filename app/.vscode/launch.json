@@ -23,7 +23,11 @@
             ],
             "symbolFiles": [
                 "${workspaceFolder}/build/mecanum/mecanum.axf"
-            ]
+            ],
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 2
+            }
         }
     ]
 }
