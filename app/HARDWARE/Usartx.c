@@ -561,10 +561,11 @@ void Serial3_ParsePacket(uint8_t data)
                 vD_mps = 0.0f;
             }
 
-            // if (g_robot_state != ROBOT_STATE_NAV)
-            // {
-            //     Robot_EnterState(ROBOT_STATE_NAV);
-            // }
+            if (g_robot_state == ROBOT_STATE_IDLE)
+            {
+                Robot_EnterState(ROBOT_STATE_NAV);
+            }
+
             if (g_robot_state == ROBOT_STATE_NAV && g_mode == MODE_VEL)
             {
                 SC_SetTargets4(vA_mps, vB_mps, vC_mps, vD_mps);
