@@ -20,7 +20,7 @@
 **/.eide/targets/*/build/
 
 # Binary output
-**/*.bin
+
 **/*.hex
 
 # VSCode / OS
