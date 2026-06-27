@@ -1,0 +1,35 @@
+uint8 STATE_IDLE=0
+uint8 STATE_SYNCING=1
+uint8 STATE_QUERY_CAPABILITY=2
+uint8 STATE_READY=3
+uint8 STATE_STARTING=4
+uint8 STATE_TRANSFERRING=5
+uint8 STATE_VERIFYING=6
+uint8 STATE_COMPLETED=7
+uint8 STATE_FAILED=8
+uint8 STATE_CANCELLED=9
+
+uint8 ERROR_NONE=0
+uint8 ERROR_INVALID_ARGUMENT=1
+uint8 ERROR_TRANSPORT_OPEN_FAILED=2
+uint8 ERROR_TRANSPORT_IO_ERROR=3
+uint8 ERROR_TIMEOUT=4
+uint8 ERROR_PROTOCOL_ERROR=5
+uint8 ERROR_CAPABILITY_REJECTED=6
+uint8 ERROR_FIRMWARE_OPEN_FAILED=7
+uint8 ERROR_FIRMWARE_TOO_LARGE=8
+uint8 ERROR_NOT_IMPLEMENTED=9
+uint8 ERROR_UNKNOWN=255
+
+builtin_interfaces/Time stamp
+uint8 state
+uint8 error_code
+float32 progress
+string firmware_path
+uint32 image_size
+uint32 image_crc32
+uint8 target_slot
+string required_image
+uint32 max_fw_size
+uint32 block_size
+string message

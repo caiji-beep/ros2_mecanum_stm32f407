@@ -1,0 +1,15 @@
+stm32_ota_node:
+  ros__parameters:
+    can_interface: can0
+    node_id: 1
+    request_base_id: 1536   # 0x600
+    response_base_id: 1408  # 0x580
+    extended_id: false
+
+    default_firmware_path: ""
+    block_size: 256
+
+    ack_timeout_ms: 1000
+    capability_timeout_ms: 1000
+    receive_timeout_ms: 100
+    status_publish_period_ms: 500

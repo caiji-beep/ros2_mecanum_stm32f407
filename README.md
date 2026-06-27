@@ -17,6 +17,7 @@ robotmini_ws/
 ├── src/
 │   ├── can_socket_demo/          # CAN 与 IMU 调试辅助
 │   ├── mecanum_hw_interface/     # ros2_control 真机串口硬件接口
+│   ├── stm32_can_ota/            # STM32 CAN OTA 上位机骨架
 │   ├── robmini_description/      # URDF/Xacro、控制器配置、真机/仿真 bringup
 │   ├── robmini_navigation/       # SLAM、Nav2、RViz、teleop、多机器人 demo
 │   └── rplidar_ros/              # SLAMTEC RPLIDAR 驱动

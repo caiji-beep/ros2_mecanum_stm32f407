@@ -1,0 +1,8 @@
+string firmware_path
+uint32 firmware_version
+bool dry_run
+---
+bool accepted
+uint8 state
+uint8 error_code
+string message
