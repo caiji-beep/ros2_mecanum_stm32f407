@@ -11,7 +11,25 @@
 
 #include "stm32f4xx.h"
 
+typedef enum
+{
+    BOOT_APP_STATUS_OK = 0,
+    BOOT_APP_STATUS_INVALID_SLOT,
+    BOOT_APP_STATUS_ERASED_VECTOR,
+    BOOT_APP_STATUS_MSP_RANGE,
+    BOOT_APP_STATUS_MSP_ALIGNMENT,
+    BOOT_APP_STATUS_RESET_THUMB,
+    BOOT_APP_STATUS_RESET_RANGE,
+    BOOT_APP_STATUS_HSI_TIMEOUT,
+    BOOT_APP_STATUS_CLOCK_SWITCH_TIMEOUT,
+    BOOT_APP_STATUS_CLOCK_STOP_TIMEOUT
+} BootAppStatus_t;
+
+/* Read this variable in the debugger when the Bootloader does not jump. */
+extern volatile BootAppStatus_t g_boot_last_status;
+
+BootAppStatus_t Boot_ValidateApp(uint32_t app_addr);
 uint8_t Boot_AppIsValid(uint32_t app_addr);
-void Boot_JumpToApp(uint32_t app_addr);
+BootAppStatus_t Boot_JumpToApp(uint32_t app_addr);
 
 #endif
