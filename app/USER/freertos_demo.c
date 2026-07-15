@@ -21,6 +21,7 @@
 #include "LED.h"
 #include "drv_power.h"
 #include "Power.h"
+#include "OledDashboard.h"
 
 /*启动任务的配置*/
 #define START_TASK_STK_SIZE 128 // 启动任务栈大小
@@ -41,7 +42,7 @@ TaskHandle_t gUartTask_Handle;
 void Uart_Task(void *pvParameters);
 
 /*DISPLAY_TASK的配置*/
-#define DISPLAY_STK_SIZE 512
+#define DISPLAY_STK_SIZE 1024
 #define DISPLAY_PRIO 2
 TaskHandle_t gDisplayTask_Handle;
 void Display_Task(void *pvParameters);
@@ -255,6 +256,11 @@ void vApplicationMallocFailedHook(void)
     for (;;)
     {
     }
+}
+
+void vApplicationTickHook(void)
+{
+    OledDashboard_Tick1ms();
 }
 
 void vApplicationIdleHook(void)

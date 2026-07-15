@@ -135,6 +135,9 @@ virtualFolder:
         - path: MyTasks/CTRL.h
         - path: MyTasks/Display.c
         - path: MyTasks/Display.h
+        - path: MyTasks/OledDashboard.c
+        - path: MyTasks/OledDashboard.h
+        - path: MyTasks/ui_config.h
         - path: MyTasks/IMU.c
         - path: MyTasks/IMU.h
         - path: MyTasks/Telemetry.c
@@ -162,6 +165,8 @@ virtualFolder:
         - path: Drivers/OLED.c
         - path: Drivers/OLED.h
         - path: Drivers/OLED_Font.h
+        - path: Drivers/lv_port_oled_ssd1306.c
+        - path: Drivers/lv_port_oled_ssd1306.h
         - path: Drivers/drv_power.c
         - path: Drivers/drv_power.h
       folders: []
@@ -169,6 +174,121 @@ virtualFolder:
       files:
         - path: Algorithm/imu_fusion.c
         - path: Algorithm/imu_fusion.h
+      folders: []
+    - name: LVGL
+      files:
+        - path: LVGL/lv_conf.h
+        - path: LVGL/lvgl/lvgl.h
+        - path: LVGL/lvgl/src/core/lv_disp.c
+        - path: LVGL/lvgl/src/core/lv_event.c
+        - path: LVGL/lvgl/src/core/lv_group.c
+        - path: LVGL/lvgl/src/core/lv_indev.c
+        - path: LVGL/lvgl/src/core/lv_indev_scroll.c
+        - path: LVGL/lvgl/src/core/lv_obj.c
+        - path: LVGL/lvgl/src/core/lv_obj_class.c
+        - path: LVGL/lvgl/src/core/lv_obj_draw.c
+        - path: LVGL/lvgl/src/core/lv_obj_pos.c
+        - path: LVGL/lvgl/src/core/lv_obj_scroll.c
+        - path: LVGL/lvgl/src/core/lv_obj_style.c
+        - path: LVGL/lvgl/src/core/lv_obj_style_gen.c
+        - path: LVGL/lvgl/src/core/lv_obj_tree.c
+        - path: LVGL/lvgl/src/core/lv_refr.c
+        - path: LVGL/lvgl/src/core/lv_theme.c
+        - path: LVGL/lvgl/src/draw/lv_draw.c
+        - path: LVGL/lvgl/src/draw/lv_draw_arc.c
+        - path: LVGL/lvgl/src/draw/lv_draw_img.c
+        - path: LVGL/lvgl/src/draw/lv_draw_label.c
+        - path: LVGL/lvgl/src/draw/lv_draw_layer.c
+        - path: LVGL/lvgl/src/draw/lv_draw_line.c
+        - path: LVGL/lvgl/src/draw/lv_draw_mask.c
+        - path: LVGL/lvgl/src/draw/lv_draw_rect.c
+        - path: LVGL/lvgl/src/draw/lv_draw_transform.c
+        - path: LVGL/lvgl/src/draw/lv_draw_triangle.c
+        - path: LVGL/lvgl/src/draw/lv_img_buf.c
+        - path: LVGL/lvgl/src/draw/lv_img_cache.c
+        - path: LVGL/lvgl/src/draw/lv_img_decoder.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_arc.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_blend.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_dither.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_gradient.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_img.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_layer.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_letter.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_line.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_polygon.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_rect.c
+        - path: LVGL/lvgl/src/draw/sw/lv_draw_sw_transform.c
+        - path: LVGL/lvgl/src/extra/lv_extra.c
+        - path: LVGL/lvgl/src/font/lv_font.c
+        - path: LVGL/lvgl/src/font/lv_font_dejavu_16_persian_hebrew.c
+        - path: LVGL/lvgl/src/font/lv_font_fmt_txt.c
+        - path: LVGL/lvgl/src/font/lv_font_loader.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_10.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_12.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_12_subpx.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_14.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_16.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_18.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_20.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_22.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_24.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_26.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_28.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_28_compressed.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_30.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_32.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_34.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_36.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_38.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_40.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_42.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_44.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_46.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_48.c
+        - path: LVGL/lvgl/src/font/lv_font_montserrat_8.c
+        - path: LVGL/lvgl/src/font/lv_font_simsun_16_cjk.c
+        - path: LVGL/lvgl/src/font/lv_font_unscii_16.c
+        - path: LVGL/lvgl/src/font/lv_font_unscii_8.c
+        - path: LVGL/lvgl/src/hal/lv_hal_disp.c
+        - path: LVGL/lvgl/src/hal/lv_hal_indev.c
+        - path: LVGL/lvgl/src/hal/lv_hal_tick.c
+        - path: LVGL/lvgl/src/misc/lv_anim.c
+        - path: LVGL/lvgl/src/misc/lv_anim_timeline.c
+        - path: LVGL/lvgl/src/misc/lv_area.c
+        - path: LVGL/lvgl/src/misc/lv_async.c
+        - path: LVGL/lvgl/src/misc/lv_bidi.c
+        - path: LVGL/lvgl/src/misc/lv_color.c
+        - path: LVGL/lvgl/src/misc/lv_fs.c
+        - path: LVGL/lvgl/src/misc/lv_gc.c
+        - path: LVGL/lvgl/src/misc/lv_ll.c
+        - path: LVGL/lvgl/src/misc/lv_log.c
+        - path: LVGL/lvgl/src/misc/lv_lru.c
+        - path: LVGL/lvgl/src/misc/lv_math.c
+        - path: LVGL/lvgl/src/misc/lv_mem.c
+        - path: LVGL/lvgl/src/misc/lv_printf.c
+        - path: LVGL/lvgl/src/misc/lv_style.c
+        - path: LVGL/lvgl/src/misc/lv_style_gen.c
+        - path: LVGL/lvgl/src/misc/lv_timer.c
+        - path: LVGL/lvgl/src/misc/lv_tlsf.c
+        - path: LVGL/lvgl/src/misc/lv_txt.c
+        - path: LVGL/lvgl/src/misc/lv_txt_ap.c
+        - path: LVGL/lvgl/src/misc/lv_utils.c
+        - path: LVGL/lvgl/src/widgets/lv_arc.c
+        - path: LVGL/lvgl/src/widgets/lv_bar.c
+        - path: LVGL/lvgl/src/widgets/lv_btn.c
+        - path: LVGL/lvgl/src/widgets/lv_btnmatrix.c
+        - path: LVGL/lvgl/src/widgets/lv_canvas.c
+        - path: LVGL/lvgl/src/widgets/lv_checkbox.c
+        - path: LVGL/lvgl/src/widgets/lv_dropdown.c
+        - path: LVGL/lvgl/src/widgets/lv_img.c
+        - path: LVGL/lvgl/src/widgets/lv_label.c
+        - path: LVGL/lvgl/src/widgets/lv_line.c
+        - path: LVGL/lvgl/src/widgets/lv_roller.c
+        - path: LVGL/lvgl/src/widgets/lv_slider.c
+        - path: LVGL/lvgl/src/widgets/lv_switch.c
+        - path: LVGL/lvgl/src/widgets/lv_table.c
+        - path: LVGL/lvgl/src/widgets/lv_textarea.c
       folders: []
 dependenceList: []
 outDir: build
@@ -195,6 +315,8 @@ targets:
         - BSP
         - Drivers
         - Algorithm
+        - LVGL
+        - LVGL/lvgl
         - .cmsis/include
         - USER/RTE/_mecanum
       libList: []
@@ -294,7 +416,7 @@ targets:
               isStartup: true
               mem:
                 size: "0x30000"
-                startAddr: "0x8010000"
+                startAddr: "0x8000000"
               tag: IROM
             - id: 2
               isChecked: false

@@ -13,6 +13,7 @@
 
 # Keil user local files
 **/*.uvgui.*
+**/*.uvguix.*
 **/*.uvoptx
 
 # EIDE output
@@ -22,6 +23,30 @@
 # Binary output
 
 **/*.hex
+
+# Logs / temporary backups
+**/*.log
+**/*.bak
+**/*.Bak
+
+# Local assistant/editor state
+.mimocode/
+
+# LVGL files not used by the Keil/EIDE embedded target
+app/LVGL/lv_conf_template.h
+app/LVGL/lvgl/**/*.md
+app/LVGL/lvgl/**/*.mk
+app/LVGL/lvgl/src/draw/arm2d/
+app/LVGL/lvgl/src/draw/nxp/
+app/LVGL/lvgl/src/draw/renesas/
+app/LVGL/lvgl/src/draw/sdl/
+app/LVGL/lvgl/src/draw/stm32_dma2d/
+app/LVGL/lvgl/src/draw/swm341_dma2d/
+app/LVGL/lvgl/src/extra/**/*.c
+app/LVGL/lvgl/src/extra/**/*.ttf
+app/LVGL/lvgl/src/lv_conf_kconfig.h
+app/LVGL/lvgl/src/misc/lv_templ.*
+app/LVGL/lvgl/src/widgets/lv_objx_templ.*
 
 # VSCode / OS
 .vscode/.browse.c_cpp.db*

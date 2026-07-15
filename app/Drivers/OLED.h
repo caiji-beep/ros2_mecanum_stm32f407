@@ -14,6 +14,9 @@ extern Soft_I2C_Bus i2c_oled;
 
 void OLED_Init(Soft_I2C_Bus *bus);
 void OLED_Clear(void);
+void OLED_SetCursor(uint8_t Y, uint8_t X);
+void OLED_WriteDataBuffer(const uint8_t *data, uint16_t len);
+void OLED_UpdateBuffer(const uint8_t *buffer);
 void OLED_ShowChar(uint8_t Line, uint8_t Column, char Char);
 void OLED_ShowString(uint8_t Line, uint8_t Column, char *String);
 void OLED_ShowNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Length);

@@ -1,12 +1,14 @@
 #include <stddef.h>
 #include "stm32f4xx.h"
+#include "OLED.h"
 #include "OLED_Font.h"
 #include "SPL_Delay.h"
-#include "bsp_soft_i2c.h"
 
 
 /* SSD1306 设备地址（7-bit） */
 #define OLED_ADDR   0x3C
+#define OLED_WIDTH  128U
+#define OLED_PAGES  8U
 
 
 Soft_I2C_Bus *oled_bus = NULL; // OLED 使用的 I2C 总线句柄，初始化后会指向外部传入的总线
@@ -30,9 +32,50 @@ void OLED_WriteCommand(uint8_t Command)
   */
 void OLED_WriteData(uint8_t Data)
 {
-	uint8_t buf[2] = { 0x40, Data };     // 0x40 = 控制字节：数据
+	uint8_t buf[2] = { 0x40, Data };
     Soft_I2C_WriteBytes(oled_bus, OLED_ADDR, buf, 2);
+}
 
+void OLED_WriteDataBuffer(const uint8_t *data, uint16_t len)
+{
+    uint8_t buf[OLED_WIDTH + 1U];
+
+    if ((data == NULL) || (len == 0U))
+    {
+        return;
+    }
+
+    while (len > 0U)
+    {
+        uint16_t chunk = (len > OLED_WIDTH) ? OLED_WIDTH : len;
+        uint16_t i;
+
+        buf[0] = 0x40;
+        for (i = 0U; i < chunk; i++)
+        {
+            buf[i + 1U] = data[i];
+        }
+
+        Soft_I2C_WriteBytes(oled_bus, OLED_ADDR, buf, (uint16_t)(chunk + 1U));
+        data += chunk;
+        len = (uint16_t)(len - chunk);
+    }
+}
+
+void OLED_UpdateBuffer(const uint8_t *buffer)
+{
+    uint8_t page;
+
+    if (buffer == NULL)
+    {
+        return;
+    }
+
+    for (page = 0U; page < OLED_PAGES; page++)
+    {
+        OLED_SetCursor(page, 0U);
+        OLED_WriteDataBuffer(&buffer[page * OLED_WIDTH], OLED_WIDTH);
+    }
 }
 
 /**
@@ -55,14 +98,13 @@ void OLED_SetCursor(uint8_t Y, uint8_t X)
   */
 void OLED_Clear(void)
 {  
-	uint8_t i, j;
-	for (j = 0; j < 8; j++)
+	uint8_t j;
+    uint8_t zero_page[OLED_WIDTH] = {0};
+
+	for (j = 0; j < OLED_PAGES; j++)
 	{
 		OLED_SetCursor(j, 0);
-		for(i = 0; i < 128; i++)
-		{
-			OLED_WriteData(0x00);
-		}
+        OLED_WriteDataBuffer(zero_page, OLED_WIDTH);
 	}
 }
 
