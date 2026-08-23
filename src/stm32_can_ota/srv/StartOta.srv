@@ -6,3 +6,6 @@ bool accepted
 uint8 state
 uint8 error_code
 string message
+string resolved_firmware_path
+uint32 image_size
+uint32 image_crc32

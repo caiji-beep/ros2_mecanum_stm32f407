@@ -91,6 +91,15 @@ bool OtaClient::start(const std::string & firmware_path, uint32_t firmware_versi
 {
   (void)firmware_version;
 
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    status_.firmware_path = firmware_path;
+    status_.image_size = 0;
+    status_.image_crc32 = 0;
+    status_.capability = BootloaderCapability{};
+    status_.capability.block_size = options_.block_size;
+  }
+
   if (firmware_path.empty()) {
     updateStatus(
       OtaState::failed,

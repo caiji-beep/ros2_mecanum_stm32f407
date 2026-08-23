@@ -174,6 +174,9 @@ bool accepted
 uint8 state
 uint8 error_code
 string message
+string resolved_firmware_path
+uint32 image_size
+uint32 image_crc32
 ```
 
 ## 5. 从网络下载固件到本地
@@ -204,11 +207,25 @@ ros2 run stm32_can_ota download_firmware.py \
 
 ```bash
 ros2 run stm32_can_ota download_firmware.py \
-  https://github.com/<owner>/<repo>/releases/download/<tag>/app_A.bin \
+  https://raw.githubusercontent.com/caiji-beep/ros2_mecanum_stm32f407/stm32f407/release/app/slave_app.bin \
+  --filename slave_app.bin \
   --sha256 <expected_sha256>
 ```
 
-之后 OTA service 可以使用本地缓存文件：
+之后 OTA service 可以使用本地缓存文件。当前 launch 默认会把 `default_firmware_path` 设置为：
+
+```text
+$HOME/.stm32_can_ota/firmware/latest.bin
+```
+
+所以 service 请求里的 `firmware_path` 可以留空：
+
+```bash
+ros2 service call /stm32_ota/start stm32_can_ota/srv/StartOta \
+  "{firmware_path: '', firmware_version: 1, dry_run: true}"
+```
+
+也可以显式传入路径，显式路径优先级更高：
 
 ```bash
 ros2 service call /stm32_ota/start stm32_can_ota/srv/StartOta \
@@ -225,6 +242,19 @@ GitHub Releases -> 本地 latest.bin -> dry_run -> 后续真实 CAN OTA
 
 ```bash
 ros2 launch stm32_can_ota stm32_can_ota.launch.py
+```
+
+默认启动后，节点会使用下面这个默认固件路径：
+
+```text
+$HOME/.stm32_can_ota/firmware/latest.bin
+```
+
+如果你想临时换一个默认固件路径，可以启动时覆盖：
+
+```bash
+ros2 launch stm32_can_ota stm32_can_ota.launch.py \
+  default_firmware_path:=/home/lsz/.stm32_can_ota/firmware/slave_app.bin
 ```
 
 指定 CAN 参数：
@@ -262,7 +292,7 @@ config/ota.yaml
 | `request_base_id` | `1536` | 请求基础 CAN ID，十六进制为 `0x600` |
 | `response_base_id` | `1408` | 应答基础 CAN ID，十六进制为 `0x580` |
 | `extended_id` | `false` | 是否使用扩展帧 |
-| `default_firmware_path` | `""` | service 未传路径时使用的默认固件 |
+| `default_firmware_path` | `$HOME/.stm32_can_ota/firmware/latest.bin` | service 未传路径时使用的默认固件 |
 | `block_size` | `256` | OTA block 大小，后续应以 Bootloader capability 为准 |
 | `ack_timeout_ms` | `1000` | ACK 超时 |
 | `capability_timeout_ms` | `1000` | capability 查询超时 |
@@ -298,6 +328,9 @@ bool accepted
 uint8 state
 uint8 error_code
 string message
+string resolved_firmware_path
+uint32 image_size
+uint32 image_crc32
 ```
 
 dry run 示例：
@@ -316,7 +349,7 @@ ros2 launch stm32_can_ota stm32_can_ota.launch.py
 cd /home/lsz/robotmini_ws
 source install/setup.bash
 ros2 service call /stm32_ota/start stm32_can_ota/srv/StartOta \
-  "{firmware_path: '/home/lsz/.stm32_can_ota/firmware/latest.bin', firmware_version: 1, dry_run: true}"
+  "{firmware_path: '', firmware_version: 1, dry_run: true}"
 ```
 
 正常响应示例：
@@ -327,8 +360,13 @@ stm32_can_ota.srv.StartOta_Response(
   accepted=True,
   state=3,
   error_code=0,
-  message='dry run complete; firmware image loaded, no CAN frames sent')
+  message='dry run complete; firmware image loaded, no CAN frames sent',
+  resolved_firmware_path='/home/lsz/.stm32_can_ota/firmware/latest.bin',
+  image_size=37192,
+  image_crc32=1452055584)
 ```
+
+其中 `image_crc32` 是 ROS2 按 `uint32` 打印出的十进制数，用来确认 OTA 节点读取到的固件内容是否符合预期。
 
 ## 9. Status Topic
 

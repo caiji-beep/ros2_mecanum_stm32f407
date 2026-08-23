@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -20,7 +20,12 @@ def generate_launch_description():
             DeclareLaunchArgument("request_base_id", default_value="1536"),
             DeclareLaunchArgument("response_base_id", default_value="1408"),
             DeclareLaunchArgument("extended_id", default_value="false"),
-            DeclareLaunchArgument("default_firmware_path", default_value=""),
+            DeclareLaunchArgument(
+                "default_firmware_path",
+                default_value=PathJoinSubstitution(
+                    [EnvironmentVariable("HOME"), ".stm32_can_ota", "firmware", "latest.bin"]
+                ),
+            ),
             Node(
                 package="stm32_can_ota",
                 executable="stm32_ota_node",

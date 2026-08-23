@@ -135,6 +135,9 @@ void Stm32OtaNode::handleStartOta(
   response->state = static_cast<uint8_t>(status.state);
   response->error_code = static_cast<uint8_t>(status.error);
   response->message = status.message;
+  response->resolved_firmware_path = status.firmware_path;
+  response->image_size = status.image_size;
+  response->image_crc32 = status.image_crc32;
   publishStatus();
 }
 
