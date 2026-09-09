@@ -12,4 +12,6 @@ stm32_ota_node:
     ack_timeout_ms: 1000
     capability_timeout_ms: 1000
     receive_timeout_ms: 100
+    max_retries: 3
+    inter_frame_delay_us: 0
     status_publish_period_ms: 500

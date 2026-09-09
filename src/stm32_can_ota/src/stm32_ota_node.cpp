@@ -38,6 +38,8 @@ Stm32OtaNode::Stm32OtaNode(const rclcpp::NodeOptions & options)
   declare_parameter<int64_t>("ack_timeout_ms", 1000);
   declare_parameter<int64_t>("capability_timeout_ms", 1000);
   declare_parameter<int64_t>("receive_timeout_ms", 100);
+  declare_parameter<int64_t>("max_retries", 3);
+  declare_parameter<int64_t>("inter_frame_delay_us", 0);
   declare_parameter<int64_t>("status_publish_period_ms", 500);
 
   ota_client_ = std::make_shared<OtaClient>(loadClientOptions());
@@ -55,6 +57,13 @@ Stm32OtaNode::Stm32OtaNode(const rclcpp::NodeOptions & options)
       std::shared_ptr<StartOta::Response> response) {
       handleStartOta(request, response);
     });
+  cancel_service_ = create_service<CancelOta>(
+    "/stm32_ota/cancel",
+    [this](
+      const std::shared_ptr<CancelOta::Request> request,
+      std::shared_ptr<CancelOta::Response> response) {
+      handleCancelOta(request, response);
+    });
 
   const auto publish_period_ms =
     checkedU32Parameter(*this, "status_publish_period_ms", 10, 60000);
@@ -66,7 +75,17 @@ Stm32OtaNode::Stm32OtaNode(const rclcpp::NodeOptions & options)
 
   RCLCPP_INFO(
     get_logger(),
-    "STM32 CAN OTA skeleton started. service=/stm32_ota/start status=/stm32_ota/status");
+    "STM32 CAN OTA ready. start=/stm32_ota/start cancel=/stm32_ota/cancel "
+    "status=/stm32_ota/status");
+}
+
+Stm32OtaNode::~Stm32OtaNode()
+{
+  if (ota_client_) {
+    ota_client_->setStatusCallback({});
+    ota_client_->cancel();
+    ota_client_.reset();
+  }
 }
 
 OtaClient::Options Stm32OtaNode::loadClientOptions()
@@ -80,16 +99,22 @@ OtaClient::Options Stm32OtaNode::loadClientOptions()
   const auto request_base_id = checkedU32Parameter(*this, "request_base_id", 0, id_max);
   const auto response_base_id = checkedU32Parameter(*this, "response_base_id", 0, id_max);
 
+  // CAN ID 计算规则：request_id = request_base_id(0x600) + node_id
+  //                    response_id = response_base_id(0x580) + node_id
+  // 这样总线上挂多个 STM32(不同 node_id)时，主机和各自的 Bootloader 不会串台。
   options.request_id = request_base_id + node_id;
   options.response_id = response_base_id + node_id;
   options.extended_id = extended_id;
-  options.block_size = checkedU32Parameter(*this, "block_size", 1, 65536);
+  options.block_size = checkedU32Parameter(*this, "block_size", 1, 1280);
   options.ack_timeout = std::chrono::milliseconds(
     checkedU32Parameter(*this, "ack_timeout_ms", 1, 60000));
   options.capability_timeout = std::chrono::milliseconds(
     checkedU32Parameter(*this, "capability_timeout_ms", 1, 60000));
   options.receive_timeout = std::chrono::milliseconds(
     checkedU32Parameter(*this, "receive_timeout_ms", 1, 60000));
+  options.max_retries = checkedU32Parameter(*this, "max_retries", 0, 100);
+  options.inter_frame_delay = std::chrono::microseconds(
+    checkedU32Parameter(*this, "inter_frame_delay_us", 0, 1000000));
 
   if (options.request_id > static_cast<uint32_t>(id_max) ||
     options.response_id > static_cast<uint32_t>(id_max))
@@ -125,6 +150,8 @@ void Stm32OtaNode::handleStartOta(
     request->firmware_version,
     request->dry_run ? "true" : "false");
 
+  // 调 OtaClient::start 启动升级(后台线程执行，不阻塞服务回调)。
+  // start 返回是否"成功接收并开始"，返回值 + 当前状态一起写回服务响应。
   const bool accepted = ota_client_->start(
     firmware_path,
     request->firmware_version,
@@ -138,7 +165,21 @@ void Stm32OtaNode::handleStartOta(
   response->resolved_firmware_path = status.firmware_path;
   response->image_size = status.image_size;
   response->image_crc32 = status.image_crc32;
+  if (!accepted && ota_client_->isRunning()) {
+    response->message = "another OTA task is already running";
+  }
   publishStatus();
+}
+
+void Stm32OtaNode::handleCancelOta(
+  const std::shared_ptr<CancelOta::Request> request,
+  std::shared_ptr<CancelOta::Response> response)
+{
+  (void)request;
+  const bool was_running = ota_client_->isRunning();
+  ota_client_->cancel();
+  response->accepted = was_running;
+  response->message = was_running ? "OTA cancellation requested" : "no OTA task is running";
 }
 
 void Stm32OtaNode::publishStatus()

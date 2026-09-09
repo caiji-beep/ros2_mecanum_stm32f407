@@ -13,6 +13,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/OtaStatus.msg"
   "srv/StartOta.srv"
+  "srv/CancelOta.srv"
   DEPENDENCIES builtin_interfaces
 )
 
@@ -61,6 +62,7 @@ install(DIRECTORY
 
 install(DIRECTORY
   config
+  docs
   launch
   DESTINATION share/${PROJECT_NAME}
 )
@@ -70,6 +72,22 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  find_package(Threads REQUIRED)
+  ament_add_gtest(test_ota_host
+    test/test_ota_host.cpp
+    src/ota_client.cpp
+    src/can_transport.cpp
+    src/ota_protocol.cpp
+    src/firmware_image.cpp
+    src/firmware_package.cpp
+    src/crc16.cpp
+    src/crc32.cpp
+  )
+  target_include_directories(test_ota_host PRIVATE include)
+  target_compile_features(test_ota_host PUBLIC cxx_std_17)
+  target_link_libraries(test_ota_host Threads::Threads)
 endif()
 
 ament_package()

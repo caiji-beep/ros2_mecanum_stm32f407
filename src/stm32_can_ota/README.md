@@ -1,8 +1,9 @@
 # stm32_can_ota
 
-`stm32_can_ota` 是 STM32 Bootloader CAN OTA 的 ROS2 上位机功能包骨架。
+`stm32_can_ota` 是 STM32 Bootloader CAN OTA 的 ROS2 上位机功能包。
 
-当前版本只建立代码架构，不实现完整 OTA 流程。后续真实刷写逻辑应放在 `OtaClient` 状态机中，并通过 `CanTransport` 与 SocketCAN 通信。
+当前上位机已实现经典 CAN 分块传输、异步状态机、CRC16/CRC32、ACK/NACK 超时重试、
+并发保护和取消。下位机应按照 [经典 CAN OTA 协议 v1](docs/protocol_v1.md) 实现接收端。
 
 ## 1. 设计目标
 
@@ -26,11 +27,12 @@
 
 ```text
 target_slot
-required_image
 max_fw_size
 block_size
 protocol_version
 ```
+
+`required_image` 目前是主机侧展示字段；若以后需要由下位机指定，可增加 capability 扩展页。
 
 ## 2. 目录结构
 
@@ -61,11 +63,14 @@ stm32_can_ota/
 │   ├── crc16.cpp
 │   └── crc32.cpp
 ├── srv/
-│   └── StartOta.srv
+│   ├── StartOta.srv
+│   └── CancelOta.srv
 ├── msg/
 │   └── OtaStatus.msg
 ├── config/
 │   └── ota.yaml
+├── docs/
+│   └── protocol_v1.md
 └── launch/
     └── stm32_can_ota.launch.py
 ```
@@ -77,6 +82,7 @@ stm32_can_ota/
 ROS2 节点层。
 
 - 提供 `/stm32_ota/start` service
+- 提供 `/stm32_ota/cancel` service
 - 发布 `/stm32_ota/status` topic
 - 读取 ROS2 参数
 - 将 ROS 请求转给 `OtaClient`
@@ -87,11 +93,11 @@ OTA 状态机层。
 
 - 管理 OTA 状态
 - 加载固件包
-- 后续执行 `SYNC -> GET_CAPABILITY -> START -> BLOCK_BEGIN -> DATA -> END`
+- 执行 `SYNC -> GET_CAPABILITY -> START -> START_CRC -> START_VERSION -> BLOCK_BEGIN -> DATA -> BLOCK_END -> END`
 - 不直接操作 SocketCAN
 - 只通过 `CanTransport` 收发 CAN 帧
 
-当前版本中，`dry_run=true` 会加载固件并计算 CRC32；真实 OTA 传输暂时返回 `NOT_IMPLEMENTED`。
+`dry_run=true` 只加载固件并计算 CRC32；`dry_run=false` 启动后台 CAN OTA 任务。
 
 ### `can_transport`
 
@@ -107,15 +113,23 @@ SocketCAN 封装层。
 
 CAN OTA 协议封装层。
 
-预留命令：
+命令码、请求帧布局、Capability 分页应答的逐字节图与实例，见
+[经典 CAN OTA 协议 v1](docs/protocol_v1.md)（重点看 §4.1「逐字节布局图」和 §4.2「完整交互实例」，
+下位机对接时务必按其中的字节偏移填充，否则会解析错位）。
+
+实现的命令：
 
 ```text
 SYNC
 GET_CAPABILITY
 START
+START_CRC
+START_VERSION
 BLOCK_BEGIN
 DATA
+BLOCK_END
 END
+ABORT
 ACK
 NACK
 ```
@@ -130,11 +144,11 @@ NACK
 
 ### `firmware_package`
 
-固件包层。
+固件包层，由 `FirmwareImage`（数据）+ `FirmwarePackageManifest`（元信息）组成。
 
-- v0.1 只支持单个 `.bin`
-- 后续可扩展 `manifest.json`
-- 当前不依赖第三方 JSON 库
+- 支持直接加载单个 `.bin`（`loadSingleImage`，默认镜像槽 `app_A`、版本 0）
+- 也支持从清单加载（`loadManifest`，清单里可指定 `image_path` / `required_image` / `firmware_version`）
+- 当前清单为内部结构体解析，不依赖第三方 JSON 库
 
 ## 4. 编译
 
@@ -235,7 +249,7 @@ ros2 service call /stm32_ota/start stm32_can_ota/srv/StartOta \
 当前建议先固定流程：
 
 ```text
-GitHub Releases -> 本地 latest.bin -> dry_run -> 后续真实 CAN OTA
+GitHub Releases -> 本地 latest.bin -> dry_run -> 真实 CAN OTA
 ```
 
 ## 6. 启动
@@ -297,6 +311,8 @@ config/ota.yaml
 | `ack_timeout_ms` | `1000` | ACK 超时 |
 | `capability_timeout_ms` | `1000` | capability 查询超时 |
 | `receive_timeout_ms` | `100` | CAN 接收轮询超时 |
+| `max_retries` | `3` | 每个控制命令或块失败后的最大重试次数 |
+| `inter_frame_delay_us` | `0` | DATA 帧间可选节流延时，默认由 SocketCAN 排队 |
 | `status_publish_period_ms` | `500` | 状态发布周期 |
 
 ## 8. Service
@@ -368,6 +384,19 @@ stm32_can_ota.srv.StartOta_Response(
 
 其中 `image_crc32` 是 ROS2 按 `uint32` 打印出的十进制数，用来确认 OTA 节点读取到的固件内容是否符合预期。
 
+真实传输：
+
+```bash
+ros2 service call /stm32_ota/start stm32_can_ota/srv/StartOta \
+  "{firmware_path: '', firmware_version: 1, dry_run: false}"
+```
+
+service 返回 `accepted=true` 表示后台任务已启动，最终结果应查看状态 topic。取消任务：
+
+```bash
+ros2 service call /stm32_ota/cancel stm32_can_ota/srv/CancelOta "{}"
+```
+
 ## 9. Status Topic
 
 Topic：
@@ -406,16 +435,13 @@ message
 
 ## 10. 当前限制
 
-当前只是骨架包：
+- STM32 Bootloader 接收端尚未实现，当前通过 FakeTransport 单元测试验证完整主机流程
+- 当前 `firmware_package` 仅支持内部清单结构体（`FirmwarePackageManifest`），尚未支持外部 `manifest.json` / YAML 解析
+- 未实现固件签名、防降级、掉电恢复和 A/B 回滚
+- 尚未在真实 CAN 总线和 STM32 Flash 上完成硬件联调
 
-- 未实现真实 OTA 数据传输
-- 未实现 Bootloader capability 查询
-- 未实现 ACK/NACK 超时重传
-- 未实现 manifest.json
-- 未实现并发升级保护
-- 未实现固件签名校验
-
-下一步建议先确定 STM32 Bootloader 的 `GET_CAPABILITY` ACK 数据格式，再补 `OtaProtocol::parseCapability()` 和 `OtaClient` 状态机。
+线协议、CRC 参数、重试语义和下位机最小实现要求见
+[经典 CAN OTA 协议 v1](docs/protocol_v1.md)。
 
 ## 11. 常见问题
 

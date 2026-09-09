@@ -22,6 +22,7 @@ namespace stm32_can_ota
 namespace
 {
 
+// 错误写入辅助：只有调用方传了 error 指针才写，避免空指针。
 void setError(std::string * error, const std::string & message)
 {
   if (error != nullptr) {
@@ -29,6 +30,8 @@ void setError(std::string * error, const std::string & message)
   }
 }
 
+// CAN ID 里的高位 bit 是"标志位"(扩展帧标志 CAN_EFF_FLAG / 远程帧标志 CAN_RTR_FLAG)，
+// 不是 ID 本身。这里把标志位剥掉，只保留纯 ID(CAN_EFF_MASK=29位, CAN_SFF_MASK=11位)。
 uint32_t stripCanFlags(uint32_t can_id)
 {
   const bool extended = (can_id & CAN_EFF_FLAG) != 0U;
@@ -72,29 +75,34 @@ bool CanTransport::open(std::string * error)
 {
   close();
 
+  // 1) 创建 CAN 原始套接字(PF_CAN 协议族)
   socket_fd_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
   if (socket_fd_ < 0) {
     setError(error, std::string("socket() failed: ") + std::strerror(errno));
     return false;
   }
 
+  // 2) 设为非阻塞：避免 receive 在无数据时无限阻塞(超时交给 select)
   int flags = fcntl(socket_fd_, F_GETFL, 0);
   if (flags >= 0) {
     (void)fcntl(socket_fd_, F_SETFL, flags | O_NONBLOCK);
   }
 
+  // 3) 把接口名(如 "can0")转成内核接口索引
   struct ifreq ifr;
   std::memset(&ifr, 0, sizeof(ifr));
   std::strncpy(ifr.ifr_name, options_.interface_name.c_str(), IFNAMSIZ - 1);
 
   if (ioctl(socket_fd_, SIOCGIFINDEX, &ifr) < 0) {
-    setError(error,
+    setError(
+      error,
       std::string("ioctl(SIOCGIFINDEX) failed for ") + options_.interface_name + ": " +
       std::strerror(errno));
     close();
     return false;
   }
 
+  // 4) 把套接字绑定到该 CAN 接口
   struct sockaddr_can addr;
   std::memset(&addr, 0, sizeof(addr));
   addr.can_family = AF_CAN;
@@ -155,6 +163,7 @@ bool CanTransport::receive(
     return false;
   }
 
+  // 用 select 实现"最多等 timeout 毫秒"：有数据可读才往下走，否则超时返回 false。
   fd_set read_set;
   FD_ZERO(&read_set);
   FD_SET(socket_fd_, &read_set);
@@ -178,6 +187,7 @@ bool CanTransport::receive(
     return false;
   }
 
+  // 有数据：读出一帧原始 can_frame，转成我们的 CanFrame 结构。
   struct can_frame raw_frame;
   const auto bytes = read(socket_fd_, &raw_frame, sizeof(raw_frame));
   if (bytes != static_cast<ssize_t>(sizeof(raw_frame))) {
@@ -185,7 +195,7 @@ bool CanTransport::receive(
     return false;
   }
 
-  frame.id = stripCanFlags(raw_frame.can_id);
+  frame.id = stripCanFlags(raw_frame.can_id);  // 去掉标志位只留纯 ID
   frame.extended = (raw_frame.can_id & CAN_EFF_FLAG) != 0U;
   frame.remote = (raw_frame.can_id & CAN_RTR_FLAG) != 0U;
   frame.dlc = raw_frame.can_dlc;
@@ -194,6 +204,8 @@ bool CanTransport::receive(
   return true;
 }
 
+// 按 ID 收帧：在 timeout 内循环接收，丢弃所有"ID 不符"的帧，
+// 直到收到目标 can_id 的帧或超时。这样能保证"我发的 START 对上 START 的 ACK"。
 bool CanTransport::receiveById(
   uint32_t can_id,
   CanFrame & frame,
@@ -217,6 +229,7 @@ bool CanTransport::receiveById(
       frame = candidate;
       return true;
     }
+    // 否则 ID 不符，继续循环丢弃，直到超时
   }
 
   setError(error, "CAN receiveById timeout");

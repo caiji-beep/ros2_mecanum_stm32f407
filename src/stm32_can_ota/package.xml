@@ -3,7 +3,7 @@
 <package format="3">
   <name>stm32_can_ota</name>
   <version>0.1.0</version>
-  <description>ROS2 C++ host-side skeleton for STM32 CAN bootloader OTA over SocketCAN.</description>
+  <description>ROS2 C++ host for reliable STM32 bootloader OTA over classic SocketCAN.</description>
   <maintainer email="2978115384@qq.com">ksnc</maintainer>
   <license>TODO</license>
 
@@ -17,6 +17,7 @@
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 

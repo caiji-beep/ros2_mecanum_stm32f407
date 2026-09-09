@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 def sha256_file(path: Path) -> str:
-    """计算文件 SHA256，用于确认下载后的文件没有损坏或被替换。"""
+    """Calculate SHA256 to verify the downloaded firmware."""
     digest = hashlib.sha256()
 
     # "rb" 表示 read binary，按二进制方式打开文件。
@@ -36,7 +36,7 @@ def sha256_file(path: Path) -> str:
 
 
 def filename_from_url(url: str) -> str:
-    """从 URL 末尾取文件名，例如 .../slave_app.bin -> slave_app.bin。"""
+    """Extract the firmware filename from a URL."""
     parsed = urllib.parse.urlparse(url)
     name = Path(parsed.path).name
 
@@ -45,7 +45,7 @@ def filename_from_url(url: str) -> str:
 
 
 def download_file(url: str, output_path: Path) -> None:
-    """把 url 对应的内容下载到 output_path。"""
+    """Download URL content to output_path."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # GitHub 等服务有时会检查 User-Agent。
@@ -96,7 +96,9 @@ def main() -> int:
 
         # 先创建临时文件，例如 tmpxxxx.download。
         # 这样下载中断时不会污染正式的 slave_app.bin。
-        with tempfile.NamedTemporaryFile(delete=False, dir=str(output_dir), suffix=".download") as temp:
+        with tempfile.NamedTemporaryFile(
+            delete=False, dir=str(output_dir), suffix=".download"
+        ) as temp:
             temp_path = Path(temp.name)
 
         try:
